@@ -1,0 +1,303 @@
+export interface Organization {
+  id: string;
+  name: string;
+  slug: string;
+  logo_url: string | null;
+  settings: Record<string, unknown>;
+  subscription_tier: string;
+  is_active: boolean;
+  created_at: any;
+  updated_at: any;
+}
+
+export interface OrganizationMember {
+  id: string;
+  organization_id: string;
+  user_id: string;
+  role: string;
+  permissions: string[];
+  joined_at: any;
+  is_active: boolean;
+}
+
+export interface Facility {
+  id: string;
+  organization_id: string;
+  name: string;
+  code: string | null;
+  type: string;
+  description: string | null;
+  address_line1: string | null;
+  address_line2: string | null;
+  city: string | null;
+  state: string | null;
+  postal_code: string | null;
+  country: string;
+  total_capacity: number | null;
+  max_weight_capacity: number | null;
+  has_dangerous_goods_storage: boolean;
+  requires_certification: boolean;
+  operating_hours: Record<string, unknown>;
+  contact_name: string | null;
+  contact_email: string | null;
+  contact_phone: string | null;
+  status: string;
+  is_active: boolean;
+  created_at: any;
+  updated_at: any;
+}
+
+export interface AssetCategory {
+  id: string;
+  organization_id: string;
+  name: string;
+  code: string;
+  description: string | null;
+  icon: string | null;
+  color: string | null;
+  lifecycle_stages: string[];
+  custom_fields: Record<string, unknown>;
+  requires_certification: boolean;
+  requires_maintenance: boolean;
+  maintenance_interval_days: number;
+  gas_type: string | null;
+  standard_capacity: number | null;
+  standard_pressure: number | null;
+  unit_of_measure: string | null;
+  is_active: boolean;
+  created_at: any;
+  updated_at: any;
+}
+
+export interface Asset {
+  id: string;
+  organization_id: string;
+  category_id: string;
+  asset_number: string;
+  qr_code: string | null;
+  barcode: string | null;
+  serial_number: string | null;
+  name: string | null;
+  description: string | null;
+  status: string;
+  sub_status: string | null;
+  current_facility_id: string | null;
+  current_zone_id: string | null;
+  current_custodian_id: string | null;
+  ownership_type: string;
+  owner_organization_id: string | null;
+  purchase_date: string | null;
+  purchase_price: number | null;
+  warranty_expiry_date: string | null;
+  insurance_provider: string | null;
+  insurance_policy_number: string | null;
+  insured_value: number | null;
+  weight: number | null;
+  dimensions: Record<string, unknown> | null;
+  color: string | null;
+  material: string | null;
+  gas_type_id: string | null;
+  capacity: number | null;
+  max_pressure: number | null;
+  current_fill_percentage: number | null;
+  last_fill_date: string | null;
+  last_hydrostatic_test: string | null;
+  next_hydrostatic_test: string | null;
+  model_number: string | null;
+  manufacturer: string | null;
+  manufactured_date: string | null;
+  installation_date: string | null;
+  health_score: number;
+  risk_score: number;
+  reliability_score: number;
+  utilization_rate: number;
+  lifecycle_stage: string;
+  total_rental_days: number;
+  total_distance_traveled_km: number;
+  total_fills_cycles: number;
+  iot_device_id: string | null;
+  last_telemetry_at: any;
+  telemetry_data: Record<string, unknown>;
+  notes: string | null;
+  custom_attributes: Record<string, unknown>;
+  tags: string[];
+  primary_photo_url: string | null;
+  photos: unknown[];
+  last_maintenance_at: any;
+  next_maintenance_date: string | null;
+  last_inspection_at: any;
+  created_at: any;
+  updated_at: any;
+  deactivated_at: any;
+}
+
+export interface Customer {
+  id: string;
+  organization_id: string;
+  name: string;
+  code: string | null;
+  type: string;
+  industry: string | null;
+  description: string | null;
+  website: string | null;
+  primary_email: string | null;
+  primary_phone: string | null;
+  credit_limit: number | null;
+  payment_terms: string;
+  discount_percentage: number | null;
+  tax_id: string | null;
+  contract_id: string | null;
+  contract_start_date: string | null;
+  contract_end_date: string | null;
+  pricing_tier: string;
+  status: string;
+  is_vip: boolean;
+  notes: string | null;
+  tags: string[];
+  custom_fields: Record<string, unknown>;
+  created_at: any;
+  updated_at: any;
+}
+
+export interface Order {
+  id: string;
+  organization_id: string;
+  order_number: string;
+  external_reference: string | null;
+  customer_id: string;
+  customer_location_id: string | null;
+  status: string;
+  sub_status: string | null;
+  priority: string;
+  is_emergency: boolean;
+  order_date: string;
+  requested_delivery_date: string | null;
+  scheduled_delivery_date: string | null;
+  actual_delivery_date: string | null;
+  delivery_window_start: string | null;
+  delivery_window_end: string | null;
+  assigned_driver_id: string | null;
+  assigned_vehicle_id: string | null;
+  route_id: string | null;
+  delivery_facility_id: string | null;
+  total_items: number;
+  total_quantity: number;
+  total_weight: number | null;
+  subtotal: number;
+  tax_amount: number;
+  discount_amount: number;
+  total_amount: number;
+  source_facility_id: string | null;
+  is_recurring: boolean;
+  recurring_frequency: string | null;
+  parent_order_id: string | null;
+  customer_notes: string | null;
+  internal_notes: string | null;
+  cancellation_reason: string | null;
+  sla_due_date: any;
+  sla_status: string;
+  created_by: string | null;
+  approved_by: string | null;
+  approved_at: any;
+  created_at: any;
+  updated_at: any;
+  completed_at: any;
+  cancelled_at: any;
+}
+
+export interface Vehicle {
+  id: string;
+  organization_id: string;
+  vehicle_number: string;
+  license_plate: string | null;
+  vin: string | null;
+  name: string | null;
+  vehicle_type: string;
+  make: string | null;
+  model: string | null;
+  year: number | null;
+  color: string | null;
+  max_weight_capacity: number | null;
+  max_volume_capacity: number | null;
+  max_cylinders: number | null;
+  has_refrigeration: boolean;
+  has_dangerous_goods_cert: boolean;
+  registration_expiry: string | null;
+  insurance_provider: string | null;
+  insurance_policy_number: string | null;
+  insurance_expiry: string | null;
+  current_mileage: number | null;
+  fuel_capacity: number | null;
+  fuel_type: string | null;
+  fuel_efficiency: number | null;
+  status: string;
+  current_facility_id: string | null;
+  current_driver_id: string | null;
+  iot_device_id: string | null;
+  last_telemetry_at: any;
+  current_location: unknown | null;
+  photo_url: string | null;
+  notes: string | null;
+  custom_attributes: Record<string, unknown>;
+  created_at: any;
+  updated_at: any;
+}
+
+export interface Driver {
+  id: string;
+  organization_id: string;
+  user_id: string | null;
+  driver_number: string | null;
+  first_name: string;
+  last_name: string;
+  email: string | null;
+  phone: string | null;
+  license_number: string | null;
+  license_class: string | null;
+  license_expiry: string | null;
+  license_state: string | null;
+  certifications: any[];
+  has_hazmat_cert: boolean;
+  has_medical_cert: boolean;
+  status: string;
+  is_available: boolean;
+  current_vehicle_id: string | null;
+  current_facility_id: string | null;
+  total_trips: number;
+  total_distance_km: number;
+  on_time_delivery_rate: number | null;
+  customer_rating: number | null;
+  working_hours: Record<string, unknown>;
+  notes: string | null;
+  created_at: any;
+  updated_at: any;
+}
+
+export interface Route {
+  id: string;
+  organization_id: string;
+  route_number: string;
+  name: string | null;
+  route_type: string;
+  driver_id: string | null;
+  vehicle_id: string | null;
+  scheduled_date: string | null;
+  scheduled_start_time: string | null;
+  scheduled_end_time: string | null;
+  actual_start_time: any;
+  actual_end_time: any;
+  status: string;
+  total_distance_km: number | null;
+  estimated_duration_minutes: number | null;
+  actual_duration_minutes: number | null;
+  total_stops: number;
+  completed_stops: number;
+  total_weight: number | null;
+  optimization_algorithm: string | null;
+  optimization_score: number | null;
+  start_facility_id: string | null;
+  end_facility_id: string | null;
+  notes: string | null;
+  created_at: any;
+  updated_at: any;
+}
