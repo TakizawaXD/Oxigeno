@@ -1,9 +1,11 @@
 import { useState, useRef, useEffect } from 'react';
-import { useLocation } from 'react-router-dom';
+import { useLocation, useNavigate } from 'react-router-dom';
 import { useAuthStore } from '../../stores/authStore';
 import { useUIStore } from '../../stores/uiStore';
 import { cn } from '../../lib/utils';
 import { getInitials } from '../../lib/utils';
+import { useTranslation } from '../../lib/translations';
+import { useTerminology } from '../../lib/terminology';
 import {
   Menu,
   Search,
@@ -15,7 +17,6 @@ import {
   User,
   LogOut,
   HelpCircle,
-  X,
   Package,
   Truck,
   Warehouse,
@@ -24,35 +25,21 @@ import {
   Sparkles,
 } from 'lucide-react';
 
-const searchSuggestions = [
-  { type: 'Assets', query: 'Oxygen cylinders in maintenance', icon: Package },
-  { type: 'Orders', query: 'Order #12345 delivery status', icon: ClipboardList },
-  { type: 'Routes', query: 'Active routes near downtown', icon: Truck },
-  { type: 'Facilities', query: 'Warehouse capacity utilization', icon: Warehouse },
-  { type: 'Customers', query: 'Hospital Alpha contract renewal', icon: Building2 },
-  { type: 'AI Insights', query: 'Predicted inventory shortages', icon: Sparkles },
-];
-
-const moduleTitles: Record<string, { title: string; description: string }> = {
-  '/': { title: 'Operations Dashboard', description: 'Real-time overview of all operations' },
-  '/assets': { title: 'Asset Management', description: 'Track and manage all physical assets' },
-  '/inventory': { title: 'Inventory Control', description: 'Monitor stock across all facilities' },
-  '/orders': { title: 'Order Management', description: 'Process and track customer orders' },
-  '/fleet': { title: 'Fleet Management', description: 'Manage vehicles and drivers' },
-  '/routes': { title: 'Route Management', description: 'Optimize delivery routes' },
-  '/customers': { title: 'Customer Relations', description: 'Manage customers and contracts' },
-  '/incidents': { title: 'Incident Management', description: 'Track and resolve issues' },
-  '/ai': { title: 'AI Operations Center', description: 'AI-powered insights and automation' },
-  '/workflows': { title: 'Workflow Engine', description: 'Automate business processes' },
-  '/facilities': { title: 'Facility Management', description: 'Configure locations and zones' },
-  '/documents': { title: 'Document Center', description: 'Manage files and certificates' },
-  '/settings': { title: 'Settings', description: 'Configure system preferences' },
-};
-
 export function Header() {
   const location = useLocation();
+  const navigate = useNavigate();
+  const { t, language, setLanguage } = useTranslation();
+  const { t: term } = useTerminology();
   const { user, organization, signOut } = useAuthStore();
-  const { sidebarCollapsed, toggleSidebar, setSidebarOpen, darkMode, setDarkMode } = useUIStore();
+  const { toggleSidebar, setSidebarOpen, toggleSidebarCollapsed, darkMode, setDarkMode, sidebarCollapsed } = useUIStore();
+  
+  const handleMenuClick = () => {
+    if (window.innerWidth < 1024) {
+      setSidebarOpen(true);
+    } else {
+      toggleSidebarCollapsed();
+    }
+  };
   const [showSearch, setShowSearch] = useState(false);
   const [showUserMenu, setShowUserMenu] = useState(false);
   const [showNotifications, setShowNotifications] = useState(false);
@@ -60,6 +47,38 @@ export function Header() {
   const searchRef = useRef<HTMLDivElement>(null);
   const userMenuRef = useRef<HTMLDivElement>(null);
   const notifRef = useRef<HTMLDivElement>(null);
+
+  const searchSuggestions = language === 'es' ? [
+    { type: 'Activos', query: 'Cilindros de oxígeno en mantenimiento', icon: Package },
+    { type: 'Pedidos', query: 'Estado de entrega del pedido #12345', icon: ClipboardList },
+    { type: 'Rutas', query: 'Rutas activas cerca del centro', icon: Truck },
+    { type: 'Instalaciones', query: 'Utilización de capacidad del almacén', icon: Warehouse },
+    { type: 'Clientes', query: 'Renovación de contrato del Hospital Alfa', icon: Building2 },
+    { type: 'Perspectivas IA', query: 'Escasez de inventario prevista', icon: Sparkles },
+  ] : [
+    { type: 'Assets', query: 'Oxygen cylinders in maintenance', icon: Package },
+    { type: 'Orders', query: 'Order #12345 delivery status', icon: ClipboardList },
+    { type: 'Routes', query: 'Active routes near downtown', icon: Truck },
+    { type: 'Facilities', query: 'Warehouse capacity utilization', icon: Warehouse },
+    { type: 'Customers', query: 'Hospital Alpha contract renewal', icon: Building2 },
+    { type: 'AI Insights', query: 'Predicted inventory shortages', icon: Sparkles },
+  ];
+
+  const moduleTitles: Record<string, { title: string; description: string }> = {
+    '/': { title: t.dashboard.operationsDashboard, description: t.dashboard.realTimeOverview },
+    '/assets': { title: term.assets, description: term.assetDesc },
+    '/inventory': { title: t.inventory.inventoryControl, description: t.inventory.monitorStock },
+    '/orders': { title: t.orders.orderManagement, description: t.orders.processAndTrack },
+    '/fleet': { title: t.fleet.fleetManagement, description: t.fleet.manageVehiclesAndDrivers },
+    '/routes': { title: t.routes.routeManagement, description: t.routes.optimizeDeliveries },
+    '/customers': { title: t.customers.customerManagement, description: t.customers.manageCustomers },
+    '/incidents': { title: t.incidents.incidentManagement, description: t.incidents.trackAndResolve },
+    '/ai': { title: t.ai.aiOperationsCenter, description: t.ai.intelligentInsights },
+    '/workflows': { title: t.workflows.workflowEngine, description: t.workflows.automateProcesses },
+    '/facilities': { title: t.facilities.facilityManagement, description: t.facilities.configureLooations },
+    '/documents': { title: t.documents.documentCenter, description: t.documents.manageFiles },
+    '/settings': { title: t.settings.settings, description: t.settings.organizationSettings },
+  };
 
   const currentModule = moduleTitles[location.pathname] || { title: 'HealthLogix OS', description: '' };
 
@@ -80,21 +99,29 @@ export function Header() {
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
-  const notifications = [
+  const notifications = language === 'es' ? [
+    { id: 1, title: 'Nueva orden de emergencia', message: 'El pedido #12847 requiere entrega inmediata', time: 'hace 2m', read: false },
+    { id: 2, title: 'Mantenimiento pendiente', message: 'El cilindro de oxígeno #2847 necesita inspección', time: 'hace 1h', read: false },
+    { id: 3, title: 'Ruta completada', message: 'La ruta #124 entregó todos los pedidos con éxito', time: 'hace 3h', read: true },
+  ] : [
     { id: 1, title: 'New emergency order', message: 'Order #12847 requires immediate delivery', time: '2m ago', read: false },
     { id: 2, title: 'Maintenance due', message: 'Oxygen cylinder #2847 needs inspection', time: '1h ago', read: false },
     { id: 3, title: 'Route completed', message: 'Route #124 delivered all orders successfully', time: '3h ago', read: true },
   ];
 
   return (
-    <header className="fixed top-0 right-0 left-0 lg:left-72 h-16 bg-white/80 dark:bg-secondary-900/80 backdrop-blur-xl border-b border-secondary-200 dark:border-secondary-800 z-40 transition-all duration-300" style={{ left: sidebarCollapsed ? '5rem' : undefined }}>
+    <header className={cn(
+      "fixed top-0 right-0 left-0 h-16 bg-white/80 dark:bg-secondary-900/80 backdrop-blur-xl border-b border-secondary-200 dark:border-secondary-800 z-40 transition-all duration-300",
+      sidebarCollapsed ? "lg:left-20" : "lg:left-72"
+    )}>
       <div className="h-full px-4 flex items-center justify-between gap-4">
         {/* Left side */}
         <div className="flex items-center gap-4">
-          {/* Mobile menu button */}
+          {/* Sidebar toggle button (All devices) */}
           <button
-            onClick={() => setSidebarOpen(true)}
-            className="lg:hidden p-2 rounded-lg hover:bg-secondary-100 dark:hover:bg-secondary-800 text-secondary-600 dark:text-secondary-400"
+            onClick={handleMenuClick}
+            className="flex p-2 rounded-lg hover:bg-secondary-100 dark:hover:bg-secondary-800 text-secondary-600 dark:text-secondary-400 transition-colors"
+            title={sidebarCollapsed ? "Expandir menú" : "Colapsar menú"}
           >
             <Menu className="w-5 h-5" />
           </button>
@@ -114,7 +141,7 @@ export function Header() {
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-secondary-400 pointer-events-none" />
             <input
               type="text"
-              placeholder="Search assets, orders, customers..."
+              placeholder={language === 'es' ? `Buscar ${term.assets.toLowerCase()}, pedidos, clientes...` : `Search ${term.assets.toLowerCase()}, orders, customers...`}
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               onFocus={() => setShowSearch(true)}
@@ -131,11 +158,13 @@ export function Header() {
               <div className="p-2">
                 {searchQuery ? (
                   <div className="p-3 text-center text-secondary-500 dark:text-secondary-400 text-sm">
-                    Press Enter to search for "{searchQuery}"
+                    {language === 'es' ? `Presiona Enter para buscar "${searchQuery}"` : `Press Enter to search for "${searchQuery}"`}
                   </div>
                 ) : (
                   <div className="space-y-1">
-                    <div className="px-3 py-2 text-xs font-semibold text-secondary-400 dark:text-secondary-500 uppercase">Quick Suggestions</div>
+                    <div className="px-3 py-2 text-xs font-semibold text-secondary-400 dark:text-secondary-500 uppercase">
+                      {language === 'es' ? 'Sugerencias Rápidas' : 'Quick Suggestions'}
+                    </div>
                     {searchSuggestions.map((suggestion, i) => (
                       <button
                         key={i}
@@ -159,6 +188,15 @@ export function Header() {
 
         {/* Right side */}
         <div className="flex items-center gap-2">
+          {/* Language Toggle */}
+          <button
+            onClick={() => setLanguage(language === 'es' ? 'en' : 'es')}
+            className="flex items-center gap-1.5 px-3 py-2.5 rounded-xl hover:bg-secondary-100 dark:hover:bg-secondary-800 text-secondary-600 dark:text-secondary-300 font-semibold text-sm transition-colors"
+            title={language === 'es' ? 'Cambiar a Inglés' : 'Switch to Spanish'}
+          >
+            <span>{language === 'es' ? '🇪🇸 ES' : '🇺🇸 EN'}</span>
+          </button>
+
           {/* Dark mode toggle */}
           <button
             onClick={() => setDarkMode(!darkMode)}
@@ -183,8 +221,12 @@ export function Header() {
               <div className="absolute top-full right-0 mt-2 w-80 bg-white dark:bg-secondary-900 rounded-xl border border-secondary-200 dark:border-secondary-800 shadow-large overflow-hidden animate-scale-in">
                 <div className="p-4 border-b border-secondary-200 dark:border-secondary-800">
                   <div className="flex items-center justify-between">
-                    <h3 className="font-semibold text-secondary-900 dark:text-white">Notifications</h3>
-                    <button className="text-xs text-primary-600 dark:text-primary-400 hover:underline">Mark all read</button>
+                    <h3 className="font-semibold text-secondary-900 dark:text-white">
+                      {language === 'es' ? 'Notificaciones' : 'Notifications'}
+                    </h3>
+                    <button className="text-xs text-primary-600 dark:text-primary-400 hover:underline">
+                      {language === 'es' ? 'Marcar todo leído' : 'Mark all read'}
+                    </button>
                   </div>
                 </div>
                 <div className="max-h-80 overflow-y-auto">
@@ -211,7 +253,9 @@ export function Header() {
                   ))}
                 </div>
                 <div className="p-3 border-t border-secondary-200 dark:border-secondary-800">
-                  <button className="w-full btn-ghost text-sm py-2">View all notifications</button>
+                  <button className="w-full btn-ghost text-sm py-2">
+                    {language === 'es' ? 'Ver todas las notificaciones' : 'View all notifications'}
+                  </button>
                 </div>
               </div>
             )}
@@ -238,17 +282,29 @@ export function Header() {
                   <div className="text-xs text-secondary-500 dark:text-secondary-400 mt-0.5">{organization?.name}</div>
                 </div>
                 <div className="p-2">
-                  <button className="w-full flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-secondary-50 dark:hover:bg-secondary-800 text-left transition-colors">
+                  <button
+                    onClick={() => {
+                      setShowUserMenu(false);
+                      navigate('/settings'); // go to profile
+                    }}
+                    className="w-full flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-secondary-50 dark:hover:bg-secondary-800 text-left transition-colors"
+                  >
                     <User className="w-4 h-4 text-secondary-500" />
-                    <span className="text-sm text-secondary-700 dark:text-secondary-300">Your profile</span>
+                    <span className="text-sm text-secondary-700 dark:text-secondary-300">{t.common.yourProfile}</span>
                   </button>
-                  <button className="w-full flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-secondary-50 dark:hover:bg-secondary-800 text-left transition-colors">
+                  <button
+                    onClick={() => {
+                      setShowUserMenu(false);
+                      navigate('/settings');
+                    }}
+                    className="w-full flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-secondary-50 dark:hover:bg-secondary-800 text-left transition-colors"
+                  >
                     <Settings className="w-4 h-4 text-secondary-500" />
-                    <span className="text-sm text-secondary-700 dark:text-secondary-300">Settings</span>
+                    <span className="text-sm text-secondary-700 dark:text-secondary-300">{t.navigation.settings}</span>
                   </button>
                   <button className="w-full flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-secondary-50 dark:hover:bg-secondary-800 text-left transition-colors">
                     <HelpCircle className="w-4 h-4 text-secondary-500" />
-                    <span className="text-sm text-secondary-700 dark:text-secondary-300">Help & support</span>
+                    <span className="text-sm text-secondary-700 dark:text-secondary-300">{t.common.helpSupport}</span>
                   </button>
                 </div>
                 <div className="p-2 border-t border-secondary-200 dark:border-secondary-800">
@@ -257,7 +313,7 @@ export function Header() {
                     className="w-full flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-error-50 dark:hover:bg-error-900/20 text-left transition-colors"
                   >
                     <LogOut className="w-4 h-4 text-error-500" />
-                    <span className="text-sm text-error-600 dark:text-error-400">Sign out</span>
+                    <span className="text-sm text-error-600 dark:text-error-400">{t.common.signOut}</span>
                   </button>
                 </div>
               </div>

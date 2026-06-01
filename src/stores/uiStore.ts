@@ -6,12 +6,16 @@ interface UIState {
   sidebarCollapsed: boolean;
   darkMode: boolean;
   currentModule: string;
+  language: 'es' | 'en';
+  businessType: 'medical_oxygen' | 'bakery' | 'retail' | 'services' | 'general';
 
   toggleSidebar: () => void;
   setSidebarOpen: (open: boolean) => void;
   toggleSidebarCollapsed: () => void;
   setDarkMode: (dark: boolean) => void;
   setCurrentModule: (module: string) => void;
+  setLanguage: (lang: 'es' | 'en') => void;
+  setBusinessType: (type: 'medical_oxygen' | 'bakery' | 'retail' | 'services' | 'general') => void;
 }
 
 export const useUIStore = create<UIState>()(
@@ -21,6 +25,8 @@ export const useUIStore = create<UIState>()(
       sidebarCollapsed: false,
       darkMode: false,
       currentModule: 'dashboard',
+      language: 'es',
+      businessType: 'medical_oxygen',
 
       toggleSidebar: () => set((state) => ({ sidebarOpen: !state.sidebarOpen })),
       setSidebarOpen: (open) => set({ sidebarOpen: open }),
@@ -34,12 +40,16 @@ export const useUIStore = create<UIState>()(
         set({ darkMode: dark });
       },
       setCurrentModule: (module) => set({ currentModule: module }),
+      setLanguage: (lang) => set({ language: lang }),
+      setBusinessType: (type) => set({ businessType: type }),
     }),
     {
       name: 'ui-storage',
       partialize: (state) => ({
         sidebarCollapsed: state.sidebarCollapsed,
         darkMode: state.darkMode,
+        language: state.language,
+        businessType: state.businessType,
       }),
     }
   )

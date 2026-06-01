@@ -1,8 +1,18 @@
 import { useState } from 'react';
 import { useAuthStore } from '../stores/authStore';
-import { db } from '../lib/firebase';
-import { doc, updateDoc, collection, getDocs, query, where, addDoc, serverTimestamp } from 'firebase/firestore';
-import { es } from '../lib/translations';
+import { useUIStore } from '../stores/uiStore';
+import {
+  db,
+  doc,
+  updateDoc,
+  collection,
+  getDocs,
+  query,
+  where,
+  addDoc,
+  serverTimestamp,
+} from '../lib/firebase';
+import { useTranslation } from '../lib/translations';
 import { cn } from '../lib/utils';
 import {
   Settings,
@@ -11,19 +21,19 @@ import {
   Upload,
   Building2,
   LogOut,
-  Mail,
-  User,
   FileJson,
-  Package,
   AlertCircle,
   CheckCircle2,
   Loader,
 } from 'lucide-react';
 
 export function SettingsPage() {
+  const { t } = useTranslation();
   const { organization, user, signOut } = useAuthStore();
+  const { businessType, setBusinessType } = useUIStore();
   const [orgName, setOrgName] = useState(organization?.name || '');
   const [logoName, setLogoName] = useState(organization?.name || 'HealthLogix OS');
+  const [selectedBusinessType, setSelectedBusinessType] = useState(businessType);
   const [saving, setSaving] = useState(false);
   const [exporting, setExporting] = useState(false);
   const [importing, setImporting] = useState(false);
@@ -40,6 +50,9 @@ export function SettingsPage() {
         name: orgName,
         updated_at: serverTimestamp(),
       });
+
+      // Update local storage and Zustand store state for UI adaptation
+      setBusinessType(selectedBusinessType);
 
       setMessage({ type: 'success', text: 'Configuración guardada correctamente' });
       setTimeout(() => setMessage(null), 3000);
@@ -166,7 +179,7 @@ export function SettingsPage() {
       <div className="flex items-center gap-3">
         <Settings className="w-6 h-6 text-primary-600" />
         <div>
-          <h1 className="text-2xl font-bold text-secondary-900 dark:text-white">{es.settings.settings}</h1>
+          <h1 className="text-2xl font-bold text-secondary-900 dark:text-white">{t.settings.settings}</h1>
           <p className="text-sm text-secondary-500 dark:text-secondary-400">Administra tu organización y preferencias</p>
         </div>
       </div>
@@ -197,12 +210,12 @@ export function SettingsPage() {
           <div className="card p-6">
             <h2 className="text-lg font-semibold text-secondary-900 dark:text-white mb-4 flex items-center gap-2">
               <Building2 className="w-5 h-5 text-primary-600" />
-              {es.settings.organizationSettings}
+              {t.settings.organizationSettings}
             </h2>
 
             <div className="space-y-4">
               <div>
-                <label className="label">{es.settings.organizationName}</label>
+                <label className="label">{t.settings.organizationName}</label>
                 <input
                   type="text"
                   value={orgName}
@@ -225,6 +238,24 @@ export function SettingsPage() {
                 </p>
               </div>
 
+              <div>
+                <label className="label">¿Qué vende tu organización? (Adaptación del Sistema)</label>
+                <select
+                  value={selectedBusinessType}
+                  onChange={(e) => setSelectedBusinessType(e.target.value as any)}
+                  className="input animate-fade-in"
+                >
+                  <option value="medical_oxygen">Oxígeno y Gases Médicos (Cilindros, Concentradores)</option>
+                  <option value="bakery">Panadería y Pastelería (Ingredientes, Horno, Moldes, Productos)</option>
+                  <option value="retail">Comercio y Retail (Productos, Mercancía, Ropa, Electrónica)</option>
+                  <option value="services">Servicios Técnicos (Herramientas, Repuestos, Equipos)</option>
+                  <option value="general">Logística y Distribución General (Palets, Contenedores, Carga)</option>
+                </select>
+                <p className="text-xs text-secondary-500 dark:text-secondary-400 mt-1">
+                  El sistema adaptará automáticamente los términos de los activos, estados y categorías sugeridas para adaptarse a tu industria.
+                </p>
+              </div>
+
               <button
                 onClick={handleSaveOrganization}
                 disabled={saving}
@@ -238,7 +269,7 @@ export function SettingsPage() {
                 ) : (
                   <>
                     <Save className="w-4 h-4" />
-                    {es.settings.saveChanges}
+                    {t.settings.saveChanges}
                   </>
                 )}
               </button>
@@ -349,18 +380,9 @@ export function SettingsPage() {
                 className="btn-error w-full mt-4"
               >
                 <LogOut className="w-4 h-4" />
-                {es.common.signOut}
+                {t.common.signOut}
               </button>
             </div>
-          </div>
-
-          {/* Signature */}
-          <div className="card p-6 bg-gradient-to-br from-primary-50 to-accent-50 dark:from-primary-900/20 dark:to-accent-900/20 border border-primary-200 dark:border-primary-800">
-            <p className="text-xs text-secondary-500 dark:text-secondary-400 uppercase mb-2">Plataforma desarrollada por</p>
-            <p className="text-lg font-bold text-primary-600 dark:text-primary-400">AndresTaker</p>
-            <p className="text-xs text-secondary-500 dark:text-secondary-400 mt-2">
-              HealthLogix OS - Sistema Operativo de Logística Sanitaria
-            </p>
           </div>
 
           {/* Quick Links */}

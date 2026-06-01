@@ -3,7 +3,8 @@ import { useAuthStore } from '../../stores/authStore';
 import { useUIStore } from '../../stores/uiStore';
 import { cn } from '../../lib/utils';
 import { getInitials } from '../../lib/utils';
-import { es } from '../../lib/translations';
+import { useTranslation } from '../../lib/translations';
+import { useTerminology } from '../../lib/terminology';
 import {
   Activity,
   LayoutDashboard,
@@ -23,34 +24,34 @@ import {
   FileText,
 } from 'lucide-react';
 
-const mainNavigation = [
-  { name: es.navigation.dashboard, href: '/', icon: LayoutDashboard },
-  { name: es.navigation.assets, href: '/assets', icon: Package },
-  { name: es.navigation.inventory, href: '/inventory', icon: Warehouse },
-  { name: es.navigation.orders, href: '/orders', icon: ClipboardList },
-  { name: es.navigation.fleet, href: '/fleet', icon: Truck },
-  { name: es.navigation.routes, href: '/routes', icon: Truck },
-  { name: es.navigation.customers, href: '/customers', icon: Users },
-  { name: es.navigation.incidents, href: '/incidents', icon: AlertTriangle },
-];
-
-const aiNavigation = [
-  { name: es.navigation.ai, href: '/ai', icon: Sparkles },
-  { name: es.navigation.workflows, href: '/workflows', icon: Workflow },
-];
-
-const settingsNavigation = [
-  { name: es.navigation.facilities, href: '/facilities', icon: Building2 },
-  { name: es.navigation.documents, href: '/documents', icon: FileText },
-  { name: es.navigation.settings, href: '/settings', icon: Settings },
-];
-
 export function Sidebar() {
+  const { t } = useTranslation();
+  const { t: term } = useTerminology();
   const { user, organization, signOut } = useAuthStore();
   const { sidebarOpen, sidebarCollapsed, setSidebarOpen, toggleSidebarCollapsed } = useUIStore();
   const location = useLocation();
 
-  if (!sidebarOpen) return null;
+  const mainNavigation = [
+    { name: t.navigation.dashboard, href: '/', icon: LayoutDashboard },
+    { name: term.assets, href: '/assets', icon: Package },
+    { name: t.navigation.inventory, href: '/inventory', icon: Warehouse },
+    { name: t.navigation.orders, href: '/orders', icon: ClipboardList },
+    { name: t.navigation.fleet, href: '/fleet', icon: Truck },
+    { name: t.navigation.routes, href: '/routes', icon: Truck },
+    { name: t.navigation.customers, href: '/customers', icon: Users },
+    { name: t.navigation.incidents, href: '/incidents', icon: AlertTriangle },
+  ];
+
+  const aiNavigation = [
+    { name: t.navigation.ai, href: '/ai', icon: Sparkles },
+    { name: t.navigation.workflows, href: '/workflows', icon: Workflow },
+  ];
+
+  const settingsNavigation = [
+    { name: t.navigation.facilities, href: '/facilities', icon: Building2 },
+    { name: t.navigation.documents, href: '/documents', icon: FileText },
+    { name: t.navigation.settings, href: '/settings', icon: Settings },
+  ];
 
   return (
     <>
@@ -67,8 +68,7 @@ export function Sidebar() {
         className={cn(
           'fixed top-0 left-0 bottom-0 z-50 bg-white dark:bg-secondary-900 border-r border-secondary-200 dark:border-secondary-800 transition-all duration-300 ease-in-out flex flex-col',
           sidebarCollapsed ? 'w-20' : 'w-72',
-          'lg:block',
-          sidebarOpen ? 'block' : 'hidden'
+          sidebarOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'
         )}
       >
         {/* Logo */}
@@ -80,9 +80,11 @@ export function Sidebar() {
             {!sidebarCollapsed && (
               <div className="overflow-hidden">
                 <div className="text-lg font-bold text-secondary-900 dark:text-white truncate">
-                  HealthLogix
+                  {organization?.name || 'HealthLogix'}
                 </div>
-                <div className="text-xs text-secondary-500 dark:text-secondary-400">Operating System</div>
+                <div className="text-xs text-secondary-500 dark:text-secondary-400 truncate max-w-[170px]" title={term.dashboardTitle}>
+                  {term.dashboardTitle}
+                </div>
               </div>
             )}
           </div>
@@ -122,7 +124,7 @@ export function Sidebar() {
           <nav className="space-y-1 px-3">
             {!sidebarCollapsed && (
               <div className="px-3 py-2 text-xs font-semibold text-secondary-400 dark:text-secondary-500 uppercase tracking-wider">
-                {es.navigation.operations}
+                {t.navigation.operations}
               </div>
             )}
             {mainNavigation.map((item) => {
@@ -158,7 +160,7 @@ export function Sidebar() {
 
             {!sidebarCollapsed && (
               <div className="px-3 py-2 text-xs font-semibold text-secondary-400 dark:text-secondary-500 uppercase tracking-wider">
-                {es.navigation.intelligence}
+                {t.navigation.intelligence}
               </div>
             )}
             {aiNavigation.map((item) => {
@@ -194,7 +196,7 @@ export function Sidebar() {
 
             {!sidebarCollapsed && (
               <div className="px-3 py-2 text-xs font-semibold text-secondary-400 dark:text-secondary-500 uppercase tracking-wider">
-                {es.navigation.administration}
+                {t.navigation.administration}
               </div>
             )}
             {settingsNavigation.map((item) => {
@@ -242,7 +244,7 @@ export function Sidebar() {
                   className="flex items-center gap-1 text-xs text-secondary-500 dark:text-secondary-400 hover:text-error-600 dark:hover:text-error-400 transition-colors"
                 >
                   <LogOut className="w-3 h-3" />
-                  {es.common.signOut}
+                  {t.common.signOut}
                 </button>
               </div>
             )}

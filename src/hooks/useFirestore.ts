@@ -1,6 +1,15 @@
 import { useState, useEffect, useCallback } from 'react';
-import { db } from '../lib/firebase';
-import { collection, query, where, getDocs, orderBy, limit, DocumentData, QueryConstraint } from 'firebase/firestore';
+import {
+  db,
+  collection,
+  query,
+  where,
+  getDocs,
+  orderBy,
+  limit,
+  DocumentData,
+  QueryConstraint,
+} from '../lib/firebase';
 import { useAuthStore } from '../stores/authStore';
 
 interface UseFirestoreOptions {

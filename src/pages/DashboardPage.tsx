@@ -1,37 +1,31 @@
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { db } from '../lib/firebase';
-import { collection, query, where, getDocs } from 'firebase/firestore';
+import {
+  db,
+  collection,
+  query,
+  where,
+  getDocs,
+} from '../lib/firebase';
 import { useAuthStore } from '../stores/authStore';
-import { formatCurrency, formatNumber, formatPercent, formatRelativeTime, getStatusColor, getPriorityColor } from '../lib/utils';
+import { formatCurrency, formatRelativeTime } from '../lib/utils';
 import { cn } from '../lib/utils';
-import { Skeleton, SkeletonCard } from '../components/ui/Skeleton';
 import {
   Package,
   Truck,
   ClipboardList,
   AlertTriangle,
   TrendingUp,
-  TrendingDown,
   Activity,
   ArrowUpRight,
-  ArrowDownRight,
-  Clock,
-  MapPin,
   Users,
   Building2,
   Sparkles,
   ChevronRight,
   RefreshCw,
-  BarChart3,
-  PieChart,
-  Zap,
-  Fuel,
-  Thermometer,
   Gauge,
   AlertCircle,
   CheckCircle2,
-  XCircle,
 } from 'lucide-react';
 
 interface Stats {
@@ -78,26 +72,109 @@ export function DashboardPage() {
   const [stats, setStats] = useState<Stats | null>(null);
   const [recentActivity, setRecentActivity] = useState<RecentActivity[]>([]);
   const [liveRoutes, setLiveRoutes] = useState<LiveRoute[]>([]);
+  const [aiRecommendations, setAiRecommendations] = useState<any[]>([]);
+  const [inventoryStatus, setInventoryStatus] = useState<any[]>([]);
   const [refreshing, setRefreshing] = useState(false);
+
+  // Dynamic status trends
+  const [assetsAddedThisWeek, setAssetsAddedThisWeek] = useState(0);
+  const [revenueChangePct, setRevenueChangePct] = useState(0);
+  const [avgHealthScore, setAvgHealthScore] = useState(100);
+  const [avgUtilizationRate, setAvgUtilizationRate] = useState(0);
+  const [avgComplianceRate, setAvgComplianceRate] = useState(100);
 
   const fetchDashboardData = async () => {
     if (!organization) return;
 
     try {
       // Fetch stats from Firebase
-      const [assetsSnapshot, ordersSnapshot, facilitiesSnapshot, customersSnapshot, driversSnapshot] = await Promise.all([
+      const [
+        assetsSnapshot,
+        ordersSnapshot,
+        facilitiesSnapshot,
+        customersSnapshot,
+        driversSnapshot,
+        routesSnapshot,
+        incidentsSnapshot,
+        inventorySnapshot,
+        recommendationsSnapshot,
+        categoriesSnapshot,
+      ] = await Promise.all([
         getDocs(query(collection(db, 'assets'), where('organization_id', '==', organization.id))),
         getDocs(query(collection(db, 'orders'), where('organization_id', '==', organization.id))),
         getDocs(query(collection(db, 'facilities'), where('organization_id', '==', organization.id))),
         getDocs(query(collection(db, 'customers'), where('organization_id', '==', organization.id))),
         getDocs(query(collection(db, 'drivers'), where('organization_id', '==', organization.id))),
+        getDocs(query(collection(db, 'routes'), where('organization_id', '==', organization.id))),
+        getDocs(query(collection(db, 'incidents'), where('organization_id', '==', organization.id))),
+        getDocs(query(collection(db, 'inventory'), where('organization_id', '==', organization.id))),
+        getDocs(query(collection(db, 'ai_recommendations'), where('organization_id', '==', organization.id))),
+        getDocs(query(collection(db, 'asset_categories'), where('organization_id', '==', organization.id))),
       ]);
 
-      const assets = assetsSnapshot.docs.map(doc => doc.data());
-      const orders = ordersSnapshot.docs.map(doc => doc.data());
+      const assets = assetsSnapshot.docs.map((doc: any) => doc.data());
+      const orders = ordersSnapshot.docs.map((doc: any) => doc.data());
       const facilities = facilitiesSnapshot.docs;
       const customers = customersSnapshot.docs;
-      const drivers = driversSnapshot.docs.map(doc => doc.data());
+      const drivers = driversSnapshot.docs.map((doc: any) => doc.data());
+      const routes = routesSnapshot.docs.map((doc: any) => doc.data());
+      const incidents = incidentsSnapshot.docs.map((doc: any) => doc.data());
+
+      // Calculate Revenue Today
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+
+      const ordersDeliveredToday = orders.filter((o: any) => {
+        if (o.status !== 'delivered') return false;
+        const dDate = o.updated_at ? (o.updated_at.toDate ? o.updated_at.toDate() : new Date(o.updated_at)) : new Date();
+        return dDate >= today;
+      });
+      const revenueTodayVal = ordersDeliveredToday.reduce((sum: number, o: any) => sum + (o.total_amount || 0), 0);
+
+      const yesterday = new Date();
+      yesterday.setDate(yesterday.getDate() - 1);
+      yesterday.setHours(0, 0, 0, 0);
+
+      const ordersDeliveredYesterday = orders.filter((o: any) => {
+        if (o.status !== 'delivered') return false;
+        const dDate = o.updated_at ? (o.updated_at.toDate ? o.updated_at.toDate() : new Date(o.updated_at)) : new Date();
+        return dDate >= yesterday && dDate < today;
+      });
+      const revenueYesterday = ordersDeliveredYesterday.reduce((sum: number, o: any) => sum + (o.total_amount || 0), 0);
+
+      let revChange = 0;
+      if (revenueYesterday > 0) {
+        revChange = Math.round(((revenueTodayVal - revenueYesterday) / revenueYesterday) * 100);
+      }
+      setRevenueChangePct(revChange);
+
+      const totalRevenueMonth = orders.reduce((sum: number, o: any) => sum + (o.total_amount || 0), 0);
+
+      // Assets added this week
+      const sevenDaysAgo = new Date();
+      sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
+      const newAssetsCount = assets.filter((a: any) => {
+        if (!a.created_at) return false;
+        const d = a.created_at.toDate ? a.created_at.toDate() : new Date(a.created_at);
+        return d >= sevenDaysAgo;
+      }).length;
+      setAssetsAddedThisWeek(newAssetsCount);
+
+      // Average Health Score, Utilization, Compliance
+      const health = assets.length > 0
+        ? Math.round(assets.reduce((sum: number, a: any) => sum + (a.health_score || 0), 0) / assets.length)
+        : 100;
+      const utilization = assets.length > 0
+        ? Math.round(assets.reduce((sum: number, a: any) => sum + (a.utilization_rate || 0), 0) / assets.length)
+        : 0;
+      const completed = routes.filter((r: any) => r.status === 'completed').length;
+      const compliance = routes.length > 0
+        ? Math.round((completed / routes.length) * 100)
+        : 100;
+
+      setAvgHealthScore(health);
+      setAvgUtilizationRate(utilization);
+      setAvgComplianceRate(compliance);
 
       setStats({
         totalAssets: assets.length,
@@ -106,38 +183,91 @@ export function DashboardPage() {
         assetsNeedingMaintenance: assets.filter((a: any) => a.status === 'maintenance').length,
         activeOrders: orders.filter((o: any) => o.status === 'active' || o.status === 'in_transit').length,
         pendingOrders: orders.filter((o: any) => o.status === 'pending').length,
-        completedToday: orders.filter((o: any) => o.status === 'delivered').length,
+        completedToday: ordersDeliveredToday.length,
         emergencyOrders: orders.filter((o: any) => o.is_emergency).length,
-        activeRoutes: 0,
+        activeRoutes: routes.filter((r: any) => r.status === 'in_progress').length,
         driversOnDuty: drivers.filter((d: any) => d.is_available).length,
         totalFacilities: facilities.length,
         totalCustomers: customers.length,
-        incidents: 0,
-        criticalIncidents: 0,
-        inventoryLow: 0,
-        revenueToday: 47832,
-        revenueMonth: 1247392,
+        incidents: incidents.length,
+        criticalIncidents: incidents.filter((i: any) => i.severity === 'critical' || i.severity === 'error').length,
+        inventoryLow: assets.filter((a: any) => (a.current_fill_percentage || 0) < 50).length,
+        revenueToday: revenueTodayVal,
+        revenueMonth: totalRevenueMonth,
       });
 
-      // Simulated recent activity
-      setRecentActivity([
-        { id: '1', type: 'asset', message: 'Oxygen cylinder #2847 filled and ready', timestamp: '2 minutes ago', severity: 'success' },
-        { id: '2', type: 'order', message: 'Emergency order #12847 created for Hospital Alpha', timestamp: '5 minutes ago', severity: 'warning' },
-        { id: '3', type: 'route', message: 'Route #124 completed - 12/12 deliveries successful', timestamp: '12 minutes ago', severity: 'success' },
-        { id: '4', type: 'incident', message: 'Low inventory alert at Downtown Warehouse', timestamp: '18 minutes ago', severity: 'warning' },
-        { id: '5', type: 'asset', message: 'Asset #1947 marked for maintenance', timestamp: '25 minutes ago', severity: 'info' },
-        { id: '6', type: 'order', message: 'Order #12846 delivered to Clinic Beta', timestamp: '32 minutes ago', severity: 'success' },
-        { id: '7', type: 'telemetry', message: 'Telemetry received from 847 assets', timestamp: '1 hour ago', severity: 'info' },
-        { id: '8', type: 'route', message: 'Driver assigned to Route #129', timestamp: '1 hour ago', severity: 'info' },
-      ]);
+      // Map dynamic recent activity from DB
+      const activities: RecentActivity[] = [];
 
-      // Simulated live routes
-      setLiveRoutes([
-        { id: '1', route_number: 'R-2024-127', driver_name: 'Michael Chen', status: 'in_progress', completed_stops: 8, total_stops: 12, eta: '14:45' },
-        { id: '2', route_number: 'R-2024-128', driver_name: 'Sarah Williams', status: 'in_progress', completed_stops: 3, total_stops: 8, eta: '16:20' },
-        { id: '3', route_number: 'R-2024-129', driver_name: 'James Rodriguez', status: 'in_progress', completed_stops: 10, total_stops: 10, eta: '13:55' },
-        { id: '4', route_number: 'R-2024-130', driver_name: 'Emily Johnson', status: 'en_route', completed_stops: 0, total_stops: 6, eta: '17:30' },
-      ]);
+      incidents.forEach((inc: any, idx: number) => {
+        activities.push({
+          id: inc.id || `inc-${idx}`,
+          type: 'incident',
+          message: `Incidencia: ${inc.title} - ${inc.description}`,
+          timestamp: inc.created_at ? formatRelativeTime(inc.created_at) : 'Reciente',
+          severity: inc.severity === 'critical' ? 'error' : 'warning',
+        });
+      });
+
+      orders.forEach((ord: any, idx: number) => {
+        activities.push({
+          id: ord.id || `ord-${idx}`,
+          type: 'order',
+          message: `Pedido ${ord.order_number} (${ord.status === 'delivered' ? 'Entregado' : ord.status === 'in_transit' ? 'En tránsito' : 'Creado'})`,
+          timestamp: ord.created_at ? formatRelativeTime(ord.created_at) : 'Reciente',
+          severity: ord.status === 'delivered' ? 'success' : ord.is_emergency ? 'warning' : 'info',
+        });
+      });
+
+      setRecentActivity(activities.slice(0, 8));
+
+      // Map live routes from DB
+      const dbRoutes = routes.map((rt: any) => {
+        const drv = drivers.find((d: any) => d.id === rt.driver_id);
+        return {
+          id: rt.id,
+          route_number: rt.route_number || 'R-2024-xxx',
+          driver_name: drv ? `${drv.first_name || ''} ${drv.last_name || drv.name || ''}`.trim() : 'Michael Chen',
+          status: rt.status || 'in_progress',
+          completed_stops: rt.completed_stops || 0,
+          total_stops: rt.total_stops || 8,
+          eta: rt.eta || '14:45',
+        };
+      });
+      setLiveRoutes(dbRoutes);
+
+      // Map AI recommendations or empty
+      if (!recommendationsSnapshot.empty) {
+        const dbRecs = recommendationsSnapshot.docs.map((d: any) => {
+          const data = d.data();
+          return {
+            id: d.id,
+            title: data.title || 'Insight',
+            description: data.description || '',
+            type: data.type || 'forecast',
+          };
+        });
+        setAiRecommendations(dbRecs);
+      } else {
+        setAiRecommendations([]);
+      }
+
+      // Map inventory status
+      if (!inventorySnapshot.empty) {
+        const dbInventory = inventorySnapshot.docs.map((d: any) => {
+          const data = d.data();
+          const cat = categoriesSnapshot.docs.find((c: any) => c.id === data.asset_category_id)?.data();
+          return {
+            name: cat?.name || 'Tanques de Oxígeno',
+            available: data.available_quantity || 0,
+            total: data.total_quantity || 0,
+            fill: data.total_quantity ? Math.round((data.available_quantity / data.total_quantity) * 100) : 0,
+          };
+        });
+        setInventoryStatus(dbInventory);
+      } else {
+        setInventoryStatus([]);
+      }
 
     } catch (error) {
       console.error('Error fetching dashboard data:', error);
@@ -159,7 +289,6 @@ export function DashboardPage() {
   if (loading) {
     return (
       <div className="space-y-6 p-6 animate-fade-in">
-        {/* Stats skeleton */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
           {Array.from({ length: 8 }).map((_, i) => (
             <div key={i} className="card p-4 space-y-2">
@@ -169,7 +298,6 @@ export function DashboardPage() {
             </div>
           ))}
         </div>
-        {/* Content skeleton */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           <div className="lg:col-span-2 space-y-6">
             <div className="card p-6">
@@ -187,17 +315,6 @@ export function DashboardPage() {
               </div>
             </div>
           </div>
-          <div className="space-y-6">
-            <div className="card p-6 space-y-4">
-              <div className="h-6 w-32 bg-secondary-200 dark:bg-secondary-700 rounded animate-pulse" />
-              {Array.from({ length: 4 }).map((_, i) => (
-                <div key={i} className="flex justify-between">
-                  <div className="h-4 w-24 bg-secondary-200 dark:bg-secondary-700 rounded animate-pulse" />
-                  <div className="h-4 w-12 bg-secondary-200 dark:bg-secondary-700 rounded animate-pulse" />
-                </div>
-              ))}
-            </div>
-          </div>
         </div>
       </div>
     );
@@ -208,8 +325,8 @@ export function DashboardPage() {
       {/* Header actions */}
       <div className="flex items-center justify-between">
         <div>
-          <p className="text-sm text-secondary-500 dark:text-secondary-400">
-            Last updated: {formatRelativeTime(new Date().toISOString())}
+          <p className="text-sm text-secondary-500 dark:text-secondary-400 font-medium">
+            Última actualización: {formatRelativeTime(new Date().toISOString())}
           </p>
         </div>
         <button
@@ -218,7 +335,7 @@ export function DashboardPage() {
           className="btn-secondary"
         >
           <RefreshCw className={cn('w-4 h-4', refreshing && 'animate-spin')} />
-          Refresh
+          Actualizar
         </button>
       </div>
 
@@ -226,33 +343,33 @@ export function DashboardPage() {
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         {[
           {
-            label: 'Total Assets',
+            label: 'Total Activos',
             value: stats?.totalAssets || 0,
-            change: '+12 this week',
+            change: `+${assetsAddedThisWeek} esta semana`,
             changeType: 'positive',
             icon: Package,
             color: 'primary',
           },
           {
-            label: 'Active Orders',
+            label: 'Pedidos Activos',
             value: stats?.activeOrders || 0,
-            change: `${stats?.emergencyOrders || 0} emergency`,
+            change: `${stats?.emergencyOrders || 0} de emergencia`,
             changeType: 'warning',
             icon: ClipboardList,
             color: 'accent',
           },
           {
-            label: 'In Transit',
+            label: 'En Tránsito',
             value: stats?.inTransitAssets || 0,
-            change: `${stats?.activeRoutes || 0} routes`,
+            change: `${stats?.activeRoutes || 0} rutas activas`,
             changeType: 'neutral',
             icon: Truck,
             color: 'warning',
           },
           {
-            label: 'Today\'s Revenue',
+            label: 'Ingresos de Hoy',
             value: formatCurrency(stats?.revenueToday || 0),
-            change: '+18% vs yesterday',
+            change: `${revenueChangePct >= 0 ? '+' : ''}${revenueChangePct}% vs ayer`,
             changeType: 'positive',
             icon: TrendingUp,
             color: 'success',
@@ -298,24 +415,24 @@ export function DashboardPage() {
       {/* Secondary Stats Grid */}
       <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-4">
         {[
-          { label: 'Facilities', value: stats?.totalFacilities || 0, icon: Building2 },
-          { label: 'Customers', value: stats?.totalCustomers || 0, icon: Users },
-          { label: 'Drivers On Duty', value: stats?.driversOnDuty || 0, icon: Users },
-          { label: 'Needs Maintenance', value: stats?.assetsNeedingMaintenance || 0, icon: AlertTriangle },
-          { label: 'Low Inventory', value: stats?.inventoryLow || 0, icon: Package },
-          { label: 'Incidents', value: stats?.incidents || 0, icon: AlertCircle },
+          { label: 'Instalaciones', value: stats?.totalFacilities || 0, icon: Building2 },
+          { label: 'Clientes', value: stats?.totalCustomers || 0, icon: Users },
+          { label: 'Cond. Activos', value: stats?.driversOnDuty || 0, icon: Users },
+          { label: 'Requieren Mant.', value: stats?.assetsNeedingMaintenance || 0, icon: AlertTriangle },
+          { label: 'Stock Bajo', value: stats?.inventoryLow || 0, icon: Package },
+          { label: 'Incidencias', value: stats?.incidents || 0, icon: AlertCircle },
         ].map((stat) => (
           <div key={stat.label} className="card p-4 text-center">
             <stat.icon className="w-5 h-5 mx-auto text-secondary-400" />
             <div className="mt-2 text-xl font-bold text-secondary-900 dark:text-white">{stat.value}</div>
-            <div className="text-xs text-secondary-500 dark:text-secondary-400">{stat.label}</div>
+            <div className="text-xs text-secondary-500 dark:text-secondary-400 font-medium truncate">{stat.label}</div>
           </div>
         ))}
       </div>
 
       {/* Main Content Grid */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Live Operations - Takes 2 columns */}
+        {/* Live Operations */}
         <div className="lg:col-span-2 space-y-6">
           {/* Live Routes */}
           <div className="card">
@@ -323,47 +440,55 @@ export function DashboardPage() {
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
                   <Truck className="w-5 h-5 text-secondary-600 dark:text-secondary-400" />
-                  <h3 className="font-semibold text-secondary-900 dark:text-white">Live Routes</h3>
-                  <span className="badge-primary">{liveRoutes.length} active</span>
+                  <h3 className="font-semibold text-secondary-900 dark:text-white">Rutas Activas</h3>
+                  <span className="badge-primary">{liveRoutes.length} activas</span>
                 </div>
-                <Link to="/routes" className="text-sm text-primary-600 dark:text-primary-400 hover:underline flex items-center gap-1">
-                  View all <ChevronRight className="w-4 h-4" />
+                <Link to="/routes" className="text-sm text-primary-600 dark:text-primary-400 hover:underline flex items-center gap-1 font-semibold">
+                  Ver todas <ChevronRight className="w-4 h-4" />
                 </Link>
               </div>
             </div>
             <div className="divide-y divide-secondary-100 dark:divide-secondary-800">
-              {liveRoutes.map((route) => (
-                <div key={route.id} className="p-4 hover:bg-secondary-50 dark:hover:bg-secondary-800/50 transition-colors">
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-3">
-                      <div className={cn(
-                        'w-2 h-2 rounded-full',
-                        route.status === 'in_progress' ? 'bg-success-500' : 'bg-warning-500'
-                      )} />
-                      <div>
-                        <div className="font-medium text-secondary-900 dark:text-white">{route.route_number}</div>
-                        <div className="text-sm text-secondary-500 dark:text-secondary-400">{route.driver_name}</div>
-                      </div>
-                    </div>
-                    <div className="text-right">
-                      <div className="text-sm font-medium text-secondary-900 dark:text-white">
-                        {route.completed_stops}/{route.total_stops} stops
-                      </div>
-                      <div className="text-xs text-secondary-500 dark:text-secondary-400">
-                        ETA {route.eta}
-                      </div>
-                    </div>
-                  </div>
-                  <div className="mt-3">
-                    <div className="h-1.5 bg-secondary-100 dark:bg-secondary-800 rounded-full overflow-hidden">
-                      <div
-                        className="h-full bg-primary-500 rounded-full transition-all"
-                        style={{ width: `${(route.completed_stops / route.total_stops) * 100}%` }}
-                      />
-                    </div>
-                  </div>
+              {liveRoutes.length === 0 ? (
+                <div className="p-8 text-center text-secondary-500 dark:text-secondary-400">
+                  <Truck className="w-12 h-12 mx-auto mb-2 text-secondary-300 dark:text-secondary-600" />
+                  <p className="text-sm font-semibold">No hay rutas activas</p>
+                  <p className="text-xs text-secondary-400 mt-1">Cree una ruta para ver su seguimiento en tiempo real.</p>
                 </div>
-              ))}
+              ) : (
+                liveRoutes.map((route) => (
+                  <div key={route.id} className="p-4 hover:bg-secondary-50 dark:hover:bg-secondary-800/50 transition-colors">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-3">
+                        <div className={cn(
+                          'w-2 h-2 rounded-full',
+                          route.status === 'in_progress' ? 'bg-success-500' : 'bg-warning-500'
+                        )} />
+                        <div>
+                          <div className="font-semibold text-secondary-900 dark:text-white">{route.route_number}</div>
+                          <div className="text-sm text-secondary-500 dark:text-secondary-400">{route.driver_name}</div>
+                        </div>
+                      </div>
+                      <div className="text-right">
+                        <div className="text-sm font-semibold text-secondary-900 dark:text-white">
+                          {route.completed_stops}/{route.total_stops} paradas
+                        </div>
+                        <div className="text-xs text-secondary-500 dark:text-secondary-400">
+                          ETA {route.eta}
+                        </div>
+                      </div>
+                    </div>
+                    <div className="mt-3">
+                      <div className="h-1.5 bg-secondary-100 dark:bg-secondary-800 rounded-full overflow-hidden">
+                        <div
+                          className="h-full bg-primary-500 rounded-full transition-all"
+                          style={{ width: `${(route.completed_stops / route.total_stops) * 100}%` }}
+                        />
+                      </div>
+                    </div>
+                  </div>
+                ))
+              )}
             </div>
           </div>
 
@@ -371,23 +496,23 @@ export function DashboardPage() {
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
             {[
               {
-                label: 'Health Score',
-                value: '94.2%',
-                trend: '+2.1%',
+                label: 'Estado de Salud Promedio',
+                value: `${avgHealthScore}%`,
+                trend: avgHealthScore >= 90 ? 'Excelente' : 'Revisar',
                 icon: Activity,
                 color: 'success',
               },
               {
-                label: 'Utilization Rate',
-                value: '78.5%',
-                trend: '+5.3%',
+                label: 'Tasa de Utilización',
+                value: `${avgUtilizationRate}%`,
+                trend: avgUtilizationRate > 0 ? 'Activo' : 'Sin uso',
                 icon: Gauge,
                 color: 'primary',
               },
               {
-                label: 'Compliance Rate',
-                value: '98.7%',
-                trend: '+0.2%',
+                label: 'Tasa de Cumplimiento',
+                value: `${avgComplianceRate}%`,
+                trend: 'Operativo',
                 icon: CheckCircle2,
                 color: 'accent',
               },
@@ -400,11 +525,11 @@ export function DashboardPage() {
                     item.color === 'primary' && 'text-primary-500',
                     item.color === 'accent' && 'text-accent-500',
                   )} />
-                  <span className="text-xs text-success-600 dark:text-success-400">{item.trend}</span>
+                  <span className="text-xs font-semibold text-secondary-500 dark:text-secondary-400">{item.trend}</span>
                 </div>
                 <div className="mt-3">
                   <div className="text-2xl font-bold text-secondary-900 dark:text-white">{item.value}</div>
-                  <div className="text-xs text-secondary-500 dark:text-secondary-400">{item.label}</div>
+                  <div className="text-xs text-secondary-500 dark:text-secondary-400 font-medium">{item.label}</div>
                 </div>
               </div>
             ))}
@@ -418,30 +543,24 @@ export function DashboardPage() {
             <div className="p-4">
               <div className="flex items-center gap-2 mb-3">
                 <Sparkles className="w-5 h-5" />
-                <span className="font-semibold">AI Insights</span>
+                <span className="font-semibold">Recomendaciones de IA</span>
               </div>
               <div className="space-y-3">
-                <div className="p-3 bg-white/10 backdrop-blur-sm rounded-lg">
-                  <div className="text-sm font-medium">Demand Forecast</div>
-                  <div className="text-xs opacity-80 mt-1">
-                    Oxygen demand expected to increase 15% next week for Hospital Alpha
+                {aiRecommendations.length === 0 ? (
+                  <div className="p-4 bg-white/10 rounded-lg text-center">
+                    <p className="text-xs opacity-90">No hay recomendaciones de IA disponibles. Añada activos y pedidos para procesar nuevos insights.</p>
                   </div>
-                </div>
-                <div className="p-3 bg-white/10 backdrop-blur-sm rounded-lg">
-                  <div className="text-sm font-medium">Optimization Suggestion</div>
-                  <div className="text-xs opacity-80 mt-1">
-                    Relocate 50 cylinders from Warehouse A to Warehouse B to reduce delivery time
-                  </div>
-                </div>
-                <div className="p-3 bg-white/10 backdrop-blur-sm rounded-lg">
-                  <div className="text-sm font-medium">Preventive Action</div>
-                  <div className="text-xs opacity-80 mt-1">
-                    Schedule maintenance for 12 assets before week end to avoid failures
-                  </div>
-                </div>
+                ) : (
+                  aiRecommendations.map((rec, idx) => (
+                    <div key={rec.id || idx} className="p-3 bg-white/10 backdrop-blur-sm rounded-lg">
+                      <div className="text-sm font-semibold">{rec.title}</div>
+                      <div className="text-xs opacity-80 mt-1">{rec.description}</div>
+                    </div>
+                  ))
+                )}
               </div>
-              <Link to="/ai" className="block mt-4 text-sm hover:underline">
-                View all recommendations
+              <Link to="/ai" className="block mt-4 text-sm font-semibold hover:underline">
+                Ver todas las recomendaciones
               </Link>
             </div>
           </div>
@@ -451,45 +570,52 @@ export function DashboardPage() {
             <div className="p-4 border-b border-secondary-200 dark:border-secondary-800">
               <div className="flex items-center gap-2">
                 <Activity className="w-5 h-5 text-secondary-600 dark:text-secondary-400" />
-                <h3 className="font-semibold text-secondary-900 dark:text-white">Recent Activity</h3>
+                <h3 className="font-semibold text-secondary-900 dark:text-white">Actividad Reciente</h3>
               </div>
             </div>
             <div className="divide-y divide-secondary-100 dark:divide-secondary-800 max-h-[400px] overflow-y-auto">
-              {recentActivity.map((activity) => (
-                <div key={activity.id} className="p-3 hover:bg-secondary-50 dark:hover:bg-secondary-800/50 transition-colors">
-                  <div className="flex items-start gap-2">
-                    <div className={cn(
-                      'w-1.5 h-1.5 rounded-full mt-2 flex-shrink-0',
-                      activity.severity === 'success' && 'bg-success-500',
-                      activity.severity === 'warning' && 'bg-warning-500',
-                      activity.severity === 'info' && 'bg-primary-500',
-                      activity.severity === 'error' && 'bg-error-500',
-                    )} />
-                    <div className="flex-1 min-w-0">
-                      <p className="text-sm text-secondary-900 dark:text-white truncate">{activity.message}</p>
-                      <p className="text-xs text-secondary-500 dark:text-secondary-400">{activity.timestamp}</p>
+              {recentActivity.length === 0 ? (
+                <div className="p-8 text-center text-secondary-500 dark:text-secondary-400">
+                  <Activity className="w-12 h-12 mx-auto mb-2 text-secondary-300 dark:text-secondary-600" />
+                  <p className="text-sm font-semibold">No hay actividad reciente</p>
+                </div>
+              ) : (
+                recentActivity.map((activity) => (
+                  <div key={activity.id} className="p-3 hover:bg-secondary-50 dark:hover:bg-secondary-800/50 transition-colors">
+                    <div className="flex items-start gap-2">
+                      <div className={cn(
+                        'w-1.5 h-1.5 rounded-full mt-2 flex-shrink-0',
+                        activity.severity === 'success' && 'bg-success-500',
+                        activity.severity === 'warning' && 'bg-warning-500',
+                        activity.severity === 'info' && 'bg-primary-500',
+                        activity.severity === 'error' && 'bg-error-500',
+                      )} />
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm text-secondary-900 dark:text-white truncate font-medium">{activity.message}</p>
+                        <p className="text-xs text-secondary-500 dark:text-secondary-400">{activity.timestamp}</p>
+                      </div>
                     </div>
                   </div>
-                </div>
-              ))}
+                ))
+              )}
             </div>
           </div>
 
           {/* Quick Actions */}
           <div className="card p-4">
-            <h3 className="font-semibold text-secondary-900 dark:text-white mb-3">Quick Actions</h3>
+            <h3 className="font-semibold text-secondary-900 dark:text-white mb-3">Acciones Rápidas</h3>
             <div className="space-y-2">
-              <Link to="/orders/new" className="w-full btn-primary justify-start">
+              <Link to="/orders" className="w-full btn-primary justify-start">
                 <ClipboardList className="w-4 h-4" />
-                New Order
+                Gestionar Pedidos
               </Link>
-              <Link to="/assets/new" className="w-full btn-secondary justify-start">
+              <Link to="/assets" className="w-full btn-secondary justify-start">
                 <Package className="w-4 h-4" />
-                Register Asset
+                Registrar Activos
               </Link>
-              <Link to="/incidents/new" className="w-full btn-secondary justify-start">
+              <Link to="/incidents" className="w-full btn-secondary justify-start">
                 <AlertTriangle className="w-4 h-4" />
-                Report Incident
+                Reportar Incidencia
               </Link>
             </div>
           </div>
@@ -499,43 +625,44 @@ export function DashboardPage() {
       {/* Inventory Status Bar */}
       <div className="card p-6">
         <div className="flex items-center justify-between mb-4">
-          <h3 className="font-semibold text-secondary-900 dark:text-white">Inventory Status by Type</h3>
-          <Link to="/inventory" className="text-sm text-primary-600 dark:text-primary-400 hover:underline">Manage inventory</Link>
+          <h3 className="font-semibold text-secondary-900 dark:text-white">Estado de Inventario por Tipo</h3>
+          <Link to="/inventory" className="text-sm text-primary-600 dark:text-primary-400 hover:underline font-semibold">Gestionar Inventario</Link>
         </div>
-        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-4">
-          {[
-            { name: 'Oxygen Cylinders', available: 1823, total: 2400, fill: 76 },
-            { name: 'Nitrogen Cylinders', available: 412, total: 500, fill: 82 },
-            { name: 'Medical CO2', available: 89, total: 150, fill: 59 },
-            { name: 'Concentrators', available: 124, total: 180, fill: 69 },
-            { name: 'Ventilators', available: 47, total: 65, fill: 72 },
-            { name: 'Other Equipment', available: 892, total: 1200, fill: 74 },
-          ].map((item) => (
-            <div key={item.name} className="text-center">
-              <div className="text-sm text-secondary-900 dark:text-white font-medium truncate">{item.name}</div>
-              <div className="text-xs text-secondary-500 dark:text-secondary-400 mt-0.5">
-                {item.available.toLocaleString()} / {item.total.toLocaleString()}
-              </div>
-              <div className="mt-2">
-                <div className="h-2 bg-secondary-100 dark:bg-secondary-800 rounded-full overflow-hidden">
-                  <div
-                    className={cn(
-                      'h-full rounded-full transition-all',
-                      item.fill >= 70 ? 'bg-success-500' : item.fill >= 40 ? 'bg-warning-500' : 'bg-error-500'
-                    )}
-                    style={{ width: `${item.fill}%` }}
-                  />
+        {inventoryStatus.length === 0 ? (
+          <div className="p-8 text-center text-secondary-500 dark:text-secondary-400 border border-dashed border-secondary-200 dark:border-secondary-800 rounded-xl">
+            <Package className="w-12 h-12 mx-auto mb-2 text-secondary-300 dark:text-secondary-600" />
+            <p className="text-sm font-semibold">No hay inventario registrado</p>
+            <p className="text-xs text-secondary-400 mt-1">Configure categorías y niveles de stock para ver el estado.</p>
+          </div>
+        ) : (
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-4">
+            {inventoryStatus.map((item) => (
+              <div key={item.name} className="text-center">
+                <div className="text-sm text-secondary-900 dark:text-white font-semibold truncate">{item.name}</div>
+                <div className="text-xs text-secondary-500 dark:text-secondary-400 mt-0.5 font-medium">
+                  {item.available.toLocaleString()} / {item.total.toLocaleString()}
+                </div>
+                <div className="mt-2">
+                  <div className="h-2 bg-secondary-100 dark:bg-secondary-800 rounded-full overflow-hidden">
+                    <div
+                      className={cn(
+                        'h-full rounded-full transition-all',
+                        item.fill >= 70 ? 'bg-success-500' : item.fill >= 40 ? 'bg-warning-500' : 'bg-error-500'
+                      )}
+                      style={{ width: `${item.fill}%` }}
+                    />
+                  </div>
+                </div>
+                <div className={cn(
+                  'text-xs mt-1 font-semibold',
+                  item.fill >= 70 ? 'text-success-600 dark:text-success-400' : item.fill >= 40 ? 'text-warning-600 dark:text-warning-400' : 'text-error-600 dark:text-error-400'
+                )}>
+                  {item.fill}%
                 </div>
               </div>
-              <div className={cn(
-                'text-xs mt-1 font-medium',
-                item.fill >= 70 ? 'text-success-600 dark:text-success-400' : item.fill >= 40 ? 'text-warning-600 dark:text-warning-400' : 'text-error-600 dark:text-error-400'
-              )}>
-                {item.fill}%
-              </div>
-            </div>
-          ))}
-        </div>
+            ))}
+          </div>
+        )}
       </div>
     </div>
   );

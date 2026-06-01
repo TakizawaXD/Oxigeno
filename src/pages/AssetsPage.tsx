@@ -1,10 +1,26 @@
 import { useState, useEffect, useMemo } from 'react';
-import { db } from '../lib/firebase';
-import { collection, query, where, getDocs, orderBy, limit, DocumentData } from 'firebase/firestore';
+import {
+  db,
+  collection,
+  query,
+  where,
+  getDocs,
+  orderBy,
+  limit,
+  DocumentData,
+  doc,
+  addDoc,
+  updateDoc,
+  deleteDoc,
+  serverTimestamp,
+} from '../lib/firebase';
 import { useAuthStore } from '../stores/authStore';
-import { formatDateTime, formatRelativeTime, formatNumber, getStatusColor, formatDate, getInitials } from '../lib/utils';
+import { useTranslation } from '../lib/translations';
+import { useTerminology } from '../lib/terminology';
+import { formatRelativeTime, getStatusColor, formatDate } from '../lib/utils';
 import { cn } from '../lib/utils';
 import { SkeletonStats, SkeletonTable } from '../components/ui/Skeleton';
+import { compressImage } from '../lib/imageCompression';
 import {
   Package,
   Plus,
@@ -13,25 +29,17 @@ import {
   Download,
   MoreHorizontal,
   MapPin,
-  Clock,
   AlertTriangle,
   CheckCircle2,
   Activity,
-  Gauge,
-  QrCode,
-  BarChart3,
   X,
-  ChevronDown,
   Eye,
   Edit,
   Trash2,
   RefreshCw,
-  Battery,
-  Thermometer,
   Heart,
   Shield,
-  Calendar,
-  History,
+  Upload,
 } from 'lucide-react';
 
 interface Asset extends DocumentData {
@@ -75,6 +83,8 @@ interface Facility extends DocumentData {
 
 export function AssetsPage() {
   const { organization } = useAuthStore();
+  const { language } = useTranslation();
+  const { t: term, businessType } = useTerminology();
   const [assets, setAssets] = useState<Asset[]>([]);
   const [categories, setCategories] = useState<AssetCategory[]>([]);
   const [facilities, setFacilities] = useState<Facility[]>([]);
@@ -86,6 +96,216 @@ export function AssetsPage() {
   const [showFilters, setShowFilters] = useState(false);
   const [selectedAsset, setSelectedAsset] = useState<Asset | null>(null);
   const [showAssetDetails, setShowAssetDetails] = useState(false);
+  const [showAddEditModal, setShowAddEditModal] = useState(false);
+  const [editingAsset, setEditingAsset] = useState<Partial<Asset> | null>(null);
+  const [uploadingPhoto, setUploadingPhoto] = useState(false);
+
+  // If categories are empty, mock them based on terminology for an immediate out-of-the-box experience
+  const displayCategories = useMemo(() => {
+    if (categories.length > 0) return categories;
+    return term.categories.map((name, index) => ({
+      id: `mock-cat-${index}`,
+      name,
+      description: `Categoría de ${name}`,
+      unit_of_measure: businessType === 'medical_oxygen' ? 'L' : 'u',
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString(),
+    }));
+  }, [categories, term.categories, businessType]);
+
+  const handlePhotoChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    setUploadingPhoto(true);
+    try {
+      // Compress the image to base64 with a max size of 600px and 0.6 quality
+      const compressedBase64 = await compressImage(file, {
+        maxWidth: 600,
+        maxHeight: 600,
+        quality: 0.6,
+        outputType: 'base64'
+      }) as string;
+
+      setEditingAsset(prev => ({
+        ...(prev || {}),
+        primary_photo_url: compressedBase64
+      }));
+    } catch (error) {
+      console.error('Error compressing image:', error);
+      alert('Error al comprimir la imagen.');
+    } finally {
+      setUploadingPhoto(false);
+    }
+  };
+
+  const handleSaveAsset = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!organization || !editingAsset?.asset_number || !editingAsset?.category_id) {
+      alert('Por favor, completa los campos requeridos (Número de Activo y Categoría).');
+      return;
+    }
+
+    try {
+      const assetData = {
+        ...editingAsset,
+        organization_id: organization.id,
+        updated_at: serverTimestamp(),
+      };
+
+      if (editingAsset.id) {
+        // Update
+        const assetRef = doc(db, 'assets', editingAsset.id);
+        await updateDoc(assetRef, assetData);
+      } else {
+        // Create
+        assetData.created_at = serverTimestamp();
+        await addDoc(collection(db, 'assets'), assetData);
+      }
+
+      setShowAddEditModal(false);
+      setEditingAsset(null);
+      fetchData(); // Refresh list
+    } catch (error) {
+      console.error('Error saving asset:', error);
+      alert('Error al guardar el activo.');
+    }
+  };
+
+  const handleDeleteAsset = async (assetId: string) => {
+    if (!window.confirm('¿Estás seguro de que deseas eliminar este activo?')) return;
+    try {
+      await deleteDoc(doc(db, 'assets', assetId));
+      setShowAssetDetails(false);
+      setSelectedAsset(null);
+      fetchData(); // Refresh list
+    } catch (error) {
+      console.error('Error deleting asset:', error);
+      alert('Error al eliminar el activo.');
+    }
+  };
+
+  const canModifyPhoto = (createdAt: any) => {
+    if (!createdAt) return true;
+    let date: Date;
+    if (createdAt.seconds) {
+      date = new Date(createdAt.seconds * 1000);
+    } else if (createdAt.toDate) {
+      date = createdAt.toDate();
+    } else {
+      date = new Date(createdAt);
+    }
+    const diffInMinutes = (Date.now() - date.getTime()) / (1000 * 60);
+    return diffInMinutes < 10;
+  };
+
+  const handleUploadEvidencePhoto = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file || !selectedAsset) return;
+
+    setUploadingPhoto(true);
+    try {
+      const compressedBase64 = await compressImage(file, {
+        maxWidth: 600,
+        maxHeight: 600,
+        quality: 0.6,
+        outputType: 'base64'
+      }) as string;
+
+      const newPhoto = {
+        id: Math.random().toString(36).substring(2, 9),
+        url: compressedBase64,
+        created_at: new Date().toISOString()
+      };
+
+      const updatedPhotos = [...(selectedAsset.photos || []), newPhoto];
+      
+      const assetRef = doc(db, 'assets', selectedAsset.id);
+      await updateDoc(assetRef, { photos: updatedPhotos });
+      
+      // Update local state
+      setSelectedAsset(prev => prev ? { ...prev, photos: updatedPhotos } : null);
+      setAssets(prev => prev.map(a => a.id === selectedAsset.id ? { ...a, photos: updatedPhotos } : a));
+    } catch (error) {
+      console.error('Error uploading photo:', error);
+      alert('Error al subir la foto.');
+    } finally {
+      setUploadingPhoto(false);
+    }
+  };
+
+  const handleDeleteEvidencePhoto = async (photoId: string) => {
+    if (!selectedAsset) return;
+    const photo = (selectedAsset.photos as any[])?.find(p => p.id === photoId);
+    if (!photo) return;
+
+    if (!canModifyPhoto(photo.created_at)) {
+      alert('Esta foto ha quedado registrada de forma permanente y ya no se puede eliminar.');
+      return;
+    }
+
+    if (!window.confirm('¿Estás seguro de que deseas eliminar esta foto de evidencia?')) return;
+
+    try {
+      const updatedPhotos = (selectedAsset.photos as any[]).filter(p => p.id !== photoId);
+      
+      const assetRef = doc(db, 'assets', selectedAsset.id);
+      await updateDoc(assetRef, { photos: updatedPhotos });
+
+      // Update local state
+      setSelectedAsset(prev => prev ? { ...prev, photos: updatedPhotos } : null);
+      setAssets(prev => prev.map(a => a.id === selectedAsset.id ? { ...a, photos: updatedPhotos } : a));
+    } catch (error) {
+      console.error('Error deleting photo:', error);
+      alert('Error al eliminar la foto.');
+    }
+  };
+
+  const handleReplaceEvidencePhoto = async (photoId: string, e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file || !selectedAsset) return;
+
+    const photo = (selectedAsset.photos as any[])?.find(p => p.id === photoId);
+    if (!photo) return;
+
+    if (!canModifyPhoto(photo.created_at)) {
+      alert('Esta foto ha quedado registrada de forma permanente y ya no se puede editar.');
+      return;
+    }
+
+    setUploadingPhoto(true);
+    try {
+      const compressedBase64 = await compressImage(file, {
+        maxWidth: 600,
+        maxHeight: 600,
+        quality: 0.6,
+        outputType: 'base64'
+      }) as string;
+
+      const updatedPhotos = (selectedAsset.photos as any[]).map(p => {
+        if (p.id === photoId) {
+          return {
+            ...p,
+            url: compressedBase64,
+            updated_at: new Date().toISOString()
+          };
+        }
+        return p;
+      });
+
+      const assetRef = doc(db, 'assets', selectedAsset.id);
+      await updateDoc(assetRef, { photos: updatedPhotos });
+
+      // Update local state
+      setSelectedAsset(prev => prev ? { ...prev, photos: updatedPhotos } : null);
+      setAssets(prev => prev.map(a => a.id === selectedAsset.id ? { ...a, photos: updatedPhotos } : a));
+    } catch (error) {
+      console.error('Error replacing photo:', error);
+      alert('Error al reemplazar la foto.');
+    } finally {
+      setUploadingPhoto(false);
+    }
+  };
 
   useEffect(() => {
     if (organization) {
@@ -189,12 +409,12 @@ export function AssetsPage() {
       {/* Header Stats */}
       <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-4">
         {[
-          { label: 'Total Assets', value: assetStats.total, icon: Package, color: 'primary' },
-          { label: 'Available', value: assetStats.available, icon: CheckCircle2, color: 'success' },
-          { label: 'In Transit', value: assetStats.inTransit, icon: Package, color: 'warning' },
-          { label: 'Maintenance', value: assetStats.maintenance, icon: AlertTriangle, color: 'warning' },
-          { label: 'Avg Health', value: `${assetStats.avgHealth.toFixed(1)}%`, icon: Heart, color: 'success' },
-          { label: 'High Risk', value: assetStats.highRisk, icon: AlertTriangle, color: 'error' },
+          { label: language === 'es' ? `Total de ${term.assets}` : `Total ${term.assets}`, value: assetStats.total, icon: Package, color: 'primary' },
+          { label: term.statusLabels.available, value: assetStats.available, icon: CheckCircle2, color: 'success' },
+          { label: term.statusLabels.in_transit, value: assetStats.inTransit, icon: Package, color: 'warning' },
+          { label: term.statusLabels.maintenance, value: assetStats.maintenance, icon: AlertTriangle, color: 'warning' },
+          { label: language === 'es' ? 'Salud Promedio' : 'Avg Health', value: `${assetStats.avgHealth.toFixed(1)}%`, icon: Heart, color: 'success' },
+          { label: language === 'es' ? 'Riesgo Alto' : 'High Risk', value: assetStats.highRisk, icon: AlertTriangle, color: 'error' },
         ].map((stat) => (
           <div key={stat.label} className="card p-4">
             <stat.icon className={cn(
@@ -218,7 +438,7 @@ export function AssetsPage() {
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-secondary-400" />
             <input
               type="text"
-              placeholder="Search by ID, name, serial number, or QR code..."
+              placeholder={term.placeholderSearch}
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               className="input pl-10"
@@ -241,9 +461,22 @@ export function AssetsPage() {
               <Download className="w-4 h-4" />
               Export
             </button>
-            <button className="btn-primary">
+            <button
+              onClick={() => {
+                setEditingAsset({
+                  status: 'available',
+                  health_score: 100,
+                  risk_score: 0,
+                  utilization_rate: 0,
+                  ownership_type: 'owned',
+                  lifecycle_stage: 'active',
+                });
+                setShowAddEditModal(true);
+              }}
+              className="btn-primary"
+            >
               <Plus className="w-4 h-4" />
-              Add Asset
+              {language === 'es' ? `Agregar ${term.assetSingular}` : `Add ${term.assetSingular}`}
             </button>
           </div>
         </div>
@@ -253,45 +486,39 @@ export function AssetsPage() {
           <div className="mt-4 pt-4 border-t border-secondary-200 dark:border-secondary-800 animate-slide-down">
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
               <div>
-                <label className="label">Category</label>
+                <label className="label">{language === 'es' ? 'Categoría' : 'Category'}</label>
                 <select
                   value={selectedCategory}
                   onChange={(e) => setSelectedCategory(e.target.value)}
                   className="input"
                 >
-                  <option value="all">All Categories</option>
-                  {categories.map((cat) => (
+                  <option value="all">{language === 'es' ? 'Todas las categorías' : 'All Categories'}</option>
+                  {displayCategories.map((cat) => (
                     <option key={cat.id} value={cat.id}>{cat.name}</option>
                   ))}
                 </select>
               </div>
               <div>
-                <label className="label">Status</label>
+                <label className="label">{language === 'es' ? 'Estado' : 'Status'}</label>
                 <select
                   value={selectedStatus}
                   onChange={(e) => setSelectedStatus(e.target.value)}
                   className="input"
                 >
-                  <option value="all">All Statuses</option>
-                  <option value="available">Available</option>
-                  <option value="reserved">Reserved</option>
-                  <option value="in_transit">In Transit</option>
-                  <option value="delivered">Delivered</option>
-                  <option value="in_use">In Use</option>
-                  <option value="maintenance">Maintenance</option>
-                  <option value="damaged">Damaged</option>
-                  <option value="lost">Lost</option>
-                  <option value="retired">Retired</option>
+                  <option value="all">{language === 'es' ? 'Todos los estados' : 'All Statuses'}</option>
+                  {Object.entries(term.statusLabels).map(([value, label]) => (
+                    <option key={value} value={value}>{label as string}</option>
+                  ))}
                 </select>
               </div>
               <div>
-                <label className="label">Facility</label>
+                <label className="label">{language === 'es' ? 'Instalación' : 'Facility'}</label>
                 <select
                   value={selectedFacility}
                   onChange={(e) => setSelectedFacility(e.target.value)}
                   className="input"
                 >
-                  <option value="all">All Facilities</option>
+                  <option value="all">{language === 'es' ? 'Todas las instalaciones' : 'All Facilities'}</option>
                   {facilities.map((fac) => (
                     <option key={fac.id} value={fac.id}>{fac.name}</option>
                   ))}
@@ -308,12 +535,12 @@ export function AssetsPage() {
           <table className="table">
             <thead className="table-header">
               <tr>
-                <th className="table-header-cell">Asset</th>
-                <th className="table-header-cell">Category</th>
-                <th className="table-header-cell">Status</th>
-                <th className="table-header-cell">Location</th>
-                <th className="table-header-cell">Digital Twin</th>
-                <th className="table-header-cell">Last Activity</th>
+                <th className="table-header-cell">{term.assetSingular}</th>
+                <th className="table-header-cell">{language === 'es' ? 'Categoría' : 'Category'}</th>
+                <th className="table-header-cell">{language === 'es' ? 'Estado' : 'Status'}</th>
+                <th className="table-header-cell">{language === 'es' ? 'Ubicación' : 'Location'}</th>
+                <th className="table-header-cell">{language === 'es' ? 'Gemelo Digital' : 'Digital Twin'}</th>
+                <th className="table-header-cell">{language === 'es' ? 'Última Actividad' : 'Last Activity'}</th>
                 <th className="table-header-cell w-12"></th>
               </tr>
             </thead>
@@ -322,8 +549,12 @@ export function AssetsPage() {
                 <tr>
                   <td colSpan={7} className="table-cell text-center py-12">
                     <Package className="w-12 h-12 mx-auto text-secondary-300 dark:text-secondary-600" />
-                    <p className="mt-2 text-secondary-500 dark:text-secondary-400">No assets found</p>
-                    <p className="text-sm text-secondary-400 dark:text-secondary-500">Try adjusting your filters or add a new asset</p>
+                    <p className="mt-2 text-secondary-500 dark:text-secondary-400">
+                      {language === 'es' ? `No se encontraron ${term.assets.toLowerCase()}` : `No ${term.assets.toLowerCase()} found`}
+                    </p>
+                    <p className="text-sm text-secondary-400 dark:text-secondary-500">
+                      {language === 'es' ? `Intenta ajustar los filtros o agrega un nuevo ${term.assetSingular.toLowerCase()}` : `Try adjusting your filters or add a new ${term.assetSingular.toLowerCase()}`}
+                    </p>
                   </td>
                 </tr>
               ) : (
@@ -346,12 +577,12 @@ export function AssetsPage() {
                     </td>
                     <td className="table-cell">
                       <span className="badge-secondary">
-                        {categories.find(c => c.id === asset.category_id)?.name || 'Unknown'}
+                        {displayCategories.find(c => c.id === asset.category_id)?.name || 'Unknown'}
                       </span>
                     </td>
                     <td className="table-cell">
                       <span className={cn('badge', `badge-${getStatusColor(asset.status)}`)}>
-                        {asset.status.replace('_', ' ')}
+                        {term.statusLabels[asset.status as keyof typeof term.statusLabels] || asset.status.replace('_', ' ')}
                       </span>
                     </td>
                     <td className="table-cell">
@@ -428,11 +659,11 @@ export function AssetsPage() {
                     <p className="text-secondary-500 dark:text-secondary-400">{selectedAsset.name || selectedAsset.serial_number || 'Asset'}</p>
                     <div className="flex items-center gap-2 mt-2">
                       <span className={cn('badge', `badge-${getStatusColor(selectedAsset.status)}`)}>
-                        {selectedAsset.status.replace('_', ' ')}
+                        {term.statusLabels[selectedAsset.status as keyof typeof term.statusLabels] || selectedAsset.status.replace('_', ' ')}
                       </span>
-                      {categories.find(c => c.id === selectedAsset.category_id) && (
+                      {displayCategories.find(c => c.id === selectedAsset.category_id) && (
                         <span className="badge-secondary">
-                          {categories.find(c => c.id === selectedAsset.category_id)?.name}
+                          {displayCategories.find(c => c.id === selectedAsset.category_id)?.name}
                         </span>
                       )}
                     </div>
@@ -488,28 +719,42 @@ export function AssetsPage() {
               {/* Asset Details Grid */}
               <div className="grid grid-cols-2 gap-6">
                 <div className="space-y-4">
-                  <h3 className="font-semibold text-secondary-900 dark:text-white">Asset Information</h3>
+                  <h3 className="font-semibold text-secondary-900 dark:text-white">
+                    {language === 'es' ? `Información de ${term.assetSingular}` : `Asset Information`}
+                  </h3>
                   <div className="space-y-3">
                     <div className="flex justify-between">
-                      <span className="text-secondary-500 dark:text-secondary-400">Serial Number</span>
+                      <span className="text-secondary-500 dark:text-secondary-400">
+                        {language === 'es' ? 'Número de Serie' : 'Serial Number'}
+                      </span>
                       <span className="text-secondary-900 dark:text-white font-medium">{selectedAsset.serial_number || '-'}</span>
                     </div>
                     <div className="flex justify-between">
-                      <span className="text-secondary-500 dark:text-secondary-400">QR Code</span>
+                      <span className="text-secondary-500 dark:text-secondary-400">
+                        {language === 'es' ? 'Código QR' : 'QR Code'}
+                      </span>
                       <span className="text-secondary-900 dark:text-white font-medium">{selectedAsset.qr_code || '-'}</span>
                     </div>
                     <div className="flex justify-between">
-                      <span className="text-secondary-500 dark:text-secondary-400">Manufacturer</span>
+                      <span className="text-secondary-500 dark:text-secondary-400">
+                        {language === 'es' ? 'Fabricante' : 'Manufacturer'}
+                      </span>
                       <span className="text-secondary-900 dark:text-white font-medium">{selectedAsset.manufacturer || '-'}</span>
                     </div>
                     <div className="flex justify-between">
-                      <span className="text-secondary-500 dark:text-secondary-400">Model</span>
+                      <span className="text-secondary-500 dark:text-secondary-400">
+                        {language === 'es' ? 'Modelo' : 'Model'}
+                      </span>
                       <span className="text-secondary-900 dark:text-white font-medium">{selectedAsset.model_number || '-'}</span>
                     </div>
                     {selectedAsset.capacity && (
                       <div className="flex justify-between">
-                        <span className="text-secondary-500 dark:text-secondary-400">Capacity</span>
-                        <span className="text-secondary-900 dark:text-white font-medium">{selectedAsset.capacity} {categories.find(c => c.id === selectedAsset.category_id)?.unit_of_measure}</span>
+                        <span className="text-secondary-500 dark:text-secondary-400">
+                          {language === 'es' ? 'Capacidad' : 'Capacity'}
+                        </span>
+                        <span className="text-secondary-900 dark:text-white font-medium">
+                          {selectedAsset.capacity} {displayCategories.find(c => c.id === selectedAsset.category_id)?.unit_of_measure}
+                        </span>
                       </div>
                     )}
                     {selectedAsset.current_fill_percentage !== null && (
@@ -580,6 +825,92 @@ export function AssetsPage() {
                   </div>
                 </div>
               </div>
+
+              {/* Evidencia Fotográfica (Historial de Fotos) con Bloqueo de 10 min */}
+              <div className="mt-6 pt-6 border-t border-secondary-200 dark:border-secondary-800">
+                <div className="flex justify-between items-center mb-4">
+                  <div>
+                    <h3 className="font-semibold text-secondary-900 dark:text-white flex items-center gap-2">
+                      <Upload className="w-5 h-5 text-primary-500" />
+                      Evidencia Fotográfica de Cilindros / Activos
+                    </h3>
+                    <p className="text-xs text-secondary-500 dark:text-secondary-400 mt-0.5">
+                      Registro de estado físico. Las fotos se bloquean permanentemente tras 10 minutos de subirse.
+                    </p>
+                  </div>
+                  <label className="btn-secondary text-xs flex items-center gap-1.5 cursor-pointer">
+                    <Plus className="w-3.5 h-3.5" />
+                    Añadir Foto
+                    <input
+                      type="file"
+                      accept="image/*"
+                      className="hidden"
+                      onChange={handleUploadEvidencePhoto}
+                      disabled={uploadingPhoto}
+                    />
+                  </label>
+                </div>
+
+                {uploadingPhoto && (
+                  <div className="p-3 bg-secondary-50 dark:bg-secondary-800 rounded-lg flex items-center justify-center gap-2 mb-4 animate-pulse">
+                    <RefreshCw className="w-4 h-4 animate-spin text-primary-500" />
+                    <span className="text-sm font-medium text-secondary-600 dark:text-secondary-400">Comprimiendo y guardando evidencia...</span>
+                  </div>
+                )}
+
+                {(!selectedAsset.photos || selectedAsset.photos.length === 0) ? (
+                  <div className="text-center py-6 border border-dashed border-secondary-300 dark:border-secondary-700 rounded-xl">
+                    <p className="text-sm text-secondary-500 dark:text-secondary-400">No hay fotos de evidencia registradas.</p>
+                  </div>
+                ) : (
+                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                    {(selectedAsset.photos as any[]).map((photo) => {
+                      const modifiable = canModifyPhoto(photo.created_at);
+                      return (
+                        <div key={photo.id} className="card p-3 flex flex-col gap-3 relative border border-secondary-200 dark:border-secondary-800">
+                          {/* Image Preview */}
+                          <div className="w-full h-36 bg-secondary-100 dark:bg-secondary-800 rounded-lg overflow-hidden border border-secondary-200 dark:border-secondary-700">
+                            <img src={photo.url} alt="Evidencia" className="w-full h-full object-cover" />
+                          </div>
+
+                          {/* Info & Actions */}
+                          <div className="flex flex-col flex-1 justify-between gap-2">
+                            <div className="text-2xs text-secondary-500 dark:text-secondary-400">
+                              Subida el: {new Date(photo.created_at).toLocaleString('es-ES')}
+                            </div>
+
+                            {modifiable ? (
+                              <div className="flex gap-2 mt-1">
+                                <label className="btn-secondary text-2xs flex-1 text-center justify-center cursor-pointer py-1.5 px-2">
+                                  Reemplazar
+                                  <input
+                                    type="file"
+                                    accept="image/*"
+                                    className="hidden"
+                                    onChange={(e) => handleReplaceEvidencePhoto(photo.id, e)}
+                                    disabled={uploadingPhoto}
+                                  />
+                                </label>
+                                <button
+                                  type="button"
+                                  onClick={() => handleDeleteEvidencePhoto(photo.id)}
+                                  className="btn-secondary text-2xs text-error-600 hover:bg-error-50 dark:hover:bg-error-950/20 py-1.5 px-2"
+                                >
+                                  Eliminar
+                                </button>
+                              </div>
+                            ) : (
+                              <div className="flex items-center gap-1 text-2xs font-semibold text-secondary-500 dark:text-secondary-400 bg-secondary-100 dark:bg-secondary-800 p-2 rounded-md justify-center">
+                                <span>🔒 Registro Permanente</span>
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
             </div>
 
             {/* Modal Footer */}
@@ -589,16 +920,250 @@ export function AssetsPage() {
                   <Eye className="w-4 h-4" />
                   View Full History
                 </button>
-                <button className="btn-secondary">
+                <button
+                  onClick={() => {
+                    setEditingAsset(selectedAsset);
+                    setShowAssetDetails(false);
+                    setShowAddEditModal(true);
+                  }}
+                  className="btn-secondary"
+                >
                   <Edit className="w-4 h-4" />
                   Edit
                 </button>
-                <button className="btn-secondary">
-                  <RefreshCw className="w-4 h-4" />
-                  Refresh
+                <button
+                  onClick={() => handleDeleteAsset(selectedAsset.id)}
+                  className="btn-secondary hover:bg-error-50 dark:hover:bg-error-950/20 hover:text-error-600"
+                >
+                  <Trash2 className="w-4 h-4" />
+                  Delete
                 </button>
               </div>
             </div>
+          </div>
+        </div>
+      )}
+      {/* Add / Edit Asset Modal */}
+      {showAddEditModal && editingAsset && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm animate-fade-in">
+          <div className="bg-white dark:bg-secondary-900 rounded-2xl shadow-xl w-full max-w-2xl max-h-[90vh] overflow-hidden animate-scale-in">
+            {/* Modal Header */}
+            <div className="p-6 border-b border-secondary-200 dark:border-secondary-800 flex justify-between items-center">
+              <h2 className="text-xl font-bold text-secondary-900 dark:text-white">
+                {editingAsset.id ? `${language === 'es' ? 'Editar' : 'Edit'} ${term.assetSingular}` : `${language === 'es' ? 'Nuevo' : 'New'} ${term.assetSingular}`}
+              </h2>
+              <button
+                onClick={() => {
+                  setShowAddEditModal(false);
+                  setEditingAsset(null);
+                }}
+                className="p-2 rounded-lg hover:bg-secondary-100 dark:hover:bg-secondary-800 text-secondary-400"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            {/* Modal Content */}
+            <form onSubmit={handleSaveAsset} className="p-6 overflow-y-auto max-h-[calc(90vh-140px)] space-y-4">
+              {/* Photo Upload System with compression */}
+              <div className="space-y-2">
+                <label className="block text-sm font-semibold text-secondary-700 dark:text-secondary-300">
+                  {language === 'es' ? `Foto del ${term.assetSingular}` : `Photo of the ${term.assetSingular}`}
+                </label>
+                <div className="flex items-center gap-4">
+                  <div className="w-20 h-20 rounded-xl bg-secondary-100 dark:bg-secondary-800 flex items-center justify-center overflow-hidden border border-secondary-200 dark:border-secondary-700">
+                    {editingAsset.primary_photo_url ? (
+                      <img src={editingAsset.primary_photo_url} alt="Preview" className="w-full h-full object-cover" />
+                    ) : (
+                      <Package className="w-8 h-8 text-secondary-400" />
+                    )}
+                  </div>
+                  <div className="flex-1">
+                    <label className="btn-secondary w-fit cursor-pointer flex items-center gap-2">
+                      <Upload className="w-4 h-4" />
+                      {uploadingPhoto ? 'Comprimiendo...' : 'Subir Foto'}
+                      <input
+                        type="file"
+                        accept="image/*"
+                        className="hidden"
+                        onChange={handlePhotoChange}
+                        disabled={uploadingPhoto}
+                      />
+                    </label>
+                    <p className="text-2xs text-secondary-500 mt-1">
+                      Las fotos se comprimen en tu navegador para no gastar espacio en la base de datos (resolución optimizada).
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              {/* Asset Fields */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                  <label className="label">
+                    {language === 'es' ? `Número de ${term.assetSingular}` : `${term.assetSingular} Number`} *
+                  </label>
+                  <input
+                    type="text"
+                    required
+                    placeholder="Ej. CYL-1002"
+                    value={editingAsset.asset_number || ''}
+                    onChange={(e) => setEditingAsset({ ...editingAsset, asset_number: e.target.value })}
+                    className="input"
+                  />
+                </div>
+                <div>
+                  <label className="label">
+                    {language === 'es' ? 'Nombre descriptivo' : 'Friendly Name'}
+                  </label>
+                  <input
+                    type="text"
+                    placeholder="Ej. Tanque Oxígeno O2 - 10L"
+                    value={editingAsset.name || ''}
+                    onChange={(e) => setEditingAsset({ ...editingAsset, name: e.target.value })}
+                    className="input"
+                  />
+                </div>
+                <div>
+                  <label className="label">
+                    {language === 'es' ? 'Categoría' : 'Category'} *
+                  </label>
+                  <select
+                    required
+                    value={editingAsset.category_id || ''}
+                    onChange={(e) => setEditingAsset({ ...editingAsset, category_id: e.target.value })}
+                    className="input"
+                  >
+                    <option value="">
+                      {language === 'es' ? 'Selecciona una categoría' : 'Select a category'}
+                    </option>
+                    {displayCategories.map((cat) => (
+                      <option key={cat.id} value={cat.id}>{cat.name}</option>
+                    ))}
+                  </select>
+                </div>
+                <div>
+                  <label className="label">Ubicación / Instalación</label>
+                  <select
+                    value={editingAsset.current_facility_id || ''}
+                    onChange={(e) => setEditingAsset({ ...editingAsset, current_facility_id: e.target.value })}
+                    className="input"
+                  >
+                    <option value="">Ninguna</option>
+                    {facilities.map((fac) => (
+                      <option key={fac.id} value={fac.id}>{fac.name}</option>
+                    ))}
+                  </select>
+                </div>
+                <div>
+                  <label className="label">Número de Serie</label>
+                  <input
+                    type="text"
+                    value={editingAsset.serial_number || ''}
+                    onChange={(e) => setEditingAsset({ ...editingAsset, serial_number: e.target.value })}
+                    className="input"
+                  />
+                </div>
+                <div>
+                  <label className="label">Código QR</label>
+                  <input
+                    type="text"
+                    value={editingAsset.qr_code || ''}
+                    onChange={(e) => setEditingAsset({ ...editingAsset, qr_code: e.target.value })}
+                    className="input"
+                  />
+                </div>
+                <div>
+                  <label className="label">Estado de Activo</label>
+                  <select
+                    value={editingAsset.status || 'available'}
+                    onChange={(e) => setEditingAsset({ ...editingAsset, status: e.target.value })}
+                    className="input"
+                  >
+                    <option value="available">Disponible</option>
+                    <option value="reserved">Reservado</option>
+                    <option value="in_transit">En tránsito</option>
+                    <option value="delivered">Entregado</option>
+                    <option value="in_use">En uso</option>
+                    <option value="maintenance">Mantenimiento</option>
+                    <option value="damaged">Dañado</option>
+                    <option value="lost">Perdido</option>
+                    <option value="retired">Retirado</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="label">Fabricante</label>
+                  <input
+                    type="text"
+                    value={editingAsset.manufacturer || ''}
+                    onChange={(e) => setEditingAsset({ ...editingAsset, manufacturer: e.target.value })}
+                    className="input"
+                  />
+                </div>
+                <div>
+                  <label className="label">Modelo</label>
+                  <input
+                    type="text"
+                    value={editingAsset.model_number || ''}
+                    onChange={(e) => setEditingAsset({ ...editingAsset, model_number: e.target.value })}
+                    className="input"
+                  />
+                </div>
+                <div>
+                  <label className="label">Capacidad (litros / kg)</label>
+                  <input
+                    type="number"
+                    step="any"
+                    value={editingAsset.capacity || ''}
+                    onChange={(e) => setEditingAsset({ ...editingAsset, capacity: parseFloat(e.target.value) || undefined })}
+                    className="input"
+                  />
+                </div>
+                <div>
+                  <label className="label">Nivel de Llenado (%)</label>
+                  <input
+                    type="number"
+                    min="0"
+                    max="100"
+                    value={editingAsset.current_fill_percentage !== undefined ? editingAsset.current_fill_percentage : ''}
+                    onChange={(e) => setEditingAsset({ ...editingAsset, current_fill_percentage: parseInt(e.target.value) || 0 })}
+                    className="input"
+                  />
+                </div>
+                <div>
+                  <label className="label">Salud del Activo (%)</label>
+                  <input
+                    type="number"
+                    min="0"
+                    max="100"
+                    value={editingAsset.health_score !== undefined ? editingAsset.health_score : 100}
+                    onChange={(e) => setEditingAsset({ ...editingAsset, health_score: parseInt(e.target.value) || 100 })}
+                    className="input"
+                  />
+                </div>
+              </div>
+
+              {/* Form Buttons */}
+              <div className="flex gap-3 pt-4 border-t border-secondary-200 dark:border-secondary-800">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setShowAddEditModal(false);
+                    setEditingAsset(null);
+                  }}
+                  className="btn-secondary flex-1"
+                >
+                  Cancelar
+                </button>
+                <button
+                  type="submit"
+                  disabled={uploadingPhoto}
+                  className="btn-primary flex-1"
+                >
+                  {editingAsset.id ? 'Guardar Cambios' : 'Crear Activo'}
+                </button>
+              </div>
+            </form>
           </div>
         </div>
       )}
