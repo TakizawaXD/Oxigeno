@@ -4,6 +4,7 @@ import { collection, query, where, getDocs, orderBy, limit, DocumentData } from 
 import { useAuthStore } from '../stores/authStore';
 import { formatDateTime, formatCurrency, formatRelativeTime, getStatusColor, getPriorityColor, formatDate } from '../lib/utils';
 import { cn } from '../lib/utils';
+import { SkeletonStats, SkeletonTable } from '../components/ui/Skeleton';
 import {
   ClipboardList,
   Plus,
@@ -136,8 +137,27 @@ export function OrdersPage() {
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center min-h-[60vh]">
-        <div className="spinner-lg text-primary-600" />
+      <div className="space-y-6 animate-fade-in p-6">
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-7 gap-4">
+          {Array.from({ length: 7 }).map((_, i) => (
+            <div key={i} className="card p-4 space-y-2">
+              <div className="h-5 w-5 bg-secondary-200 dark:bg-secondary-700 rounded-full animate-pulse" />
+              <div className="h-6 w-16 bg-secondary-200 dark:bg-secondary-700 rounded animate-pulse" />
+              <div className="h-3 w-20 bg-secondary-200 dark:bg-secondary-700 rounded animate-pulse" />
+            </div>
+          ))}
+        </div>
+        <div className="card p-4">
+          <div className="flex gap-4">
+            <div className="flex-1 h-10 bg-secondary-200 dark:bg-secondary-700 rounded animate-pulse" />
+            <div className="h-10 w-24 bg-secondary-200 dark:bg-secondary-700 rounded animate-pulse" />
+            <div className="h-10 w-24 bg-secondary-200 dark:bg-secondary-700 rounded animate-pulse" />
+            <div className="h-10 w-32 bg-secondary-200 dark:bg-secondary-700 rounded animate-pulse" />
+          </div>
+        </div>
+        <div className="card overflow-hidden">
+          <SkeletonTable rows={8} />
+        </div>
       </div>
     );
   }

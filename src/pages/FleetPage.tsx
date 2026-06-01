@@ -4,6 +4,7 @@ import { collection, query, where, getDocs, orderBy, DocumentData } from 'fireba
 import { useAuthStore } from '../stores/authStore';
 import { formatDateTime, formatRelativeTime, getStatusColor, getPriorityColor, formatNumber } from '../lib/utils';
 import { cn } from '../lib/utils';
+import { SkeletonStats, SkeletonTable } from '../components/ui/Skeleton';
 import {
   Truck,
   Plus,
@@ -126,8 +127,18 @@ export function FleetPage() {
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center min-h-[60vh]">
-        <div className="spinner-lg text-primary-600" />
+      <div className="space-y-6 animate-fade-in p-6">
+        <SkeletonStats />
+        <div className="card overflow-hidden">
+          <div className="p-4 border-b border-secondary-200 dark:border-secondary-800">
+            <div className="flex gap-4">
+              <div className="flex-1 h-10 bg-secondary-200 dark:bg-secondary-700 rounded animate-pulse" />
+              <div className="h-10 w-32 bg-secondary-200 dark:bg-secondary-700 rounded animate-pulse" />
+              <div className="h-10 w-32 bg-secondary-200 dark:bg-secondary-700 rounded animate-pulse" />
+            </div>
+          </div>
+          <SkeletonTable rows={8} />
+        </div>
       </div>
     );
   }

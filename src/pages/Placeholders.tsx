@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { db } from '../lib/firebase';
 import { collection, query, where, getDocs, orderBy, limit, DocumentData } from 'firebase/firestore';
 import { useAuthStore } from '../stores/authStore';
+import { SkeletonList, SkeletonTable, SkeletonCard } from '../components/ui/Skeleton';
 import {
   Building2,
   Plus,
@@ -50,7 +51,29 @@ export function CustomersPage() {
     }
   };
 
-  if (loading) return <div className="spinner-lg text-primary-600 mx-auto" />;
+  if (loading) return (
+    <div className="space-y-6 p-6 animate-fade-in">
+      <div className="card p-4">
+        <div className="flex gap-4">
+          <div className="flex-1 h-10 bg-secondary-200 dark:bg-secondary-700 rounded animate-pulse" />
+          <div className="h-10 w-36 bg-secondary-200 dark:bg-secondary-700 rounded animate-pulse" />
+        </div>
+      </div>
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+        {Array.from({ length: 6 }).map((_, i) => (
+          <div key={i} className="card p-5 space-y-3">
+            <div className="flex items-center gap-3">
+              <div className="h-12 w-12 bg-secondary-200 dark:bg-secondary-700 rounded-xl animate-pulse" />
+              <div className="flex-1 space-y-2">
+                <div className="h-4 w-32 bg-secondary-200 dark:bg-secondary-700 rounded animate-pulse" />
+                <div className="h-3 w-20 bg-secondary-200 dark:bg-secondary-700 rounded animate-pulse" />
+              </div>
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
 
   return (
     <div className="space-y-6 animate-fade-in">
@@ -133,7 +156,25 @@ export function InventoryPage() {
     }
   };
 
-  if (loading) return <div className="spinner-lg text-primary-600 mx-auto" />;
+  if (loading) return (
+    <div className="space-y-6 p-6 animate-fade-in">
+      <div className="card p-4">
+        <div className="flex justify-between items-center">
+          <div className="h-6 w-40 bg-secondary-200 dark:bg-secondary-700 rounded animate-pulse" />
+          <div className="h-10 w-36 bg-secondary-200 dark:bg-secondary-700 rounded animate-pulse" />
+        </div>
+      </div>
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+        {Array.from({ length: 4 }).map((_, i) => (
+          <div key={i} className="card p-4 space-y-3">
+            <div className="h-4 w-24 bg-secondary-200 dark:bg-secondary-700 rounded animate-pulse" />
+            <div className="h-3 w-20 bg-secondary-200 dark:bg-secondary-700 rounded animate-pulse" />
+            <div className="h-8 w-16 bg-secondary-200 dark:bg-secondary-700 rounded animate-pulse" />
+          </div>
+        ))}
+      </div>
+    </div>
+  );
 
   return (
     <div className="space-y-6 animate-fade-in">
@@ -201,7 +242,24 @@ export function RoutesPage() {
     }
   };
 
-  if (loading) return <div className="spinner-lg text-primary-600 mx-auto" />;
+  if (loading) return (
+    <div className="space-y-6 p-6 animate-fade-in">
+      <div className="grid grid-cols-4 gap-4">
+        {Array.from({ length: 4 }).map((_, i) => (
+          <div key={i} className="card p-4 text-center space-y-2">
+            <div className="h-7 w-12 bg-secondary-200 dark:bg-secondary-700 rounded animate-pulse mx-auto" />
+            <div className="h-3 w-20 bg-secondary-200 dark:bg-secondary-700 rounded animate-pulse mx-auto" />
+          </div>
+        ))}
+      </div>
+      <div className="card overflow-hidden">
+        <div className="p-4 border-b border-secondary-200 dark:border-secondary-800 flex justify-between">
+          <div className="h-5 w-20 bg-secondary-200 dark:bg-secondary-700 rounded animate-pulse" />
+          <div className="h-8 w-28 bg-secondary-200 dark:bg-secondary-700 rounded animate-pulse" />
+        </div>
+      </div>
+    </div>
+  );
 
   return (
     <div className="space-y-6 animate-fade-in">
@@ -259,7 +317,19 @@ export function IncidentsPage() {
     }
   };
 
-  if (loading) return <div className="spinner-lg text-primary-600 mx-auto" />;
+  if (loading) return (
+    <div className="space-y-6 p-6 animate-fade-in">
+      <div className="card p-4">
+        <div className="flex justify-between items-center">
+          <div className="space-y-2">
+            <div className="h-5 w-40 bg-secondary-200 dark:bg-secondary-700 rounded animate-pulse" />
+            <div className="h-3 w-32 bg-secondary-200 dark:bg-secondary-700 rounded animate-pulse" />
+          </div>
+          <div className="h-10 w-36 bg-secondary-200 dark:bg-secondary-700 rounded animate-pulse" />
+        </div>
+      </div>
+    </div>
+  );
 
   return (
     <div className="space-y-6 animate-fade-in">
@@ -356,7 +426,27 @@ export function FacilitiesPage() {
     }
   };
 
-  if (loading) return <div className="spinner-lg text-primary-600 mx-auto" />;
+  if (loading) return (
+    <div className="space-y-6 p-6 animate-fade-in">
+      <div className="flex justify-between">
+        <div className="h-6 w-40 bg-secondary-200 dark:bg-secondary-700 rounded animate-pulse" />
+        <div className="h-10 w-32 bg-secondary-200 dark:bg-secondary-700 rounded animate-pulse" />
+      </div>
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+        {Array.from({ length: 6 }).map((_, i) => (
+          <div key={i} className="card p-5 space-y-3">
+            <div className="flex items-center gap-3">
+              <div className="h-10 w-10 bg-secondary-200 dark:bg-secondary-700 rounded-lg animate-pulse" />
+              <div className="flex-1 space-y-2">
+                <div className="h-4 w-24 bg-secondary-200 dark:bg-secondary-700 rounded animate-pulse" />
+                <div className="h-3 w-16 bg-secondary-200 dark:bg-secondary-700 rounded animate-pulse" />
+              </div>
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
 
   return (
     <div className="space-y-6 animate-fade-in">

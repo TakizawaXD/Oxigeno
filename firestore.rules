@@ -1,0 +1,161 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Helper functions
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+
+    function isOwner(orgId) {
+      return isAuthenticated() &&
+        get(/databases/$(database)/documents/organization_members/$(orgId)_$(request.auth.uid)).data.role == 'owner';
+    }
+
+    function isMember(orgId) {
+      return isAuthenticated() &&
+        exists(/databases/$(database)/documents/organization_members/$(orgId)_$(request.auth.uid));
+    }
+
+    function hasPermission(orgId, permission) {
+      return isAuthenticated() &&
+        permission in get(/databases/$(database)/documents/organization_members/$(orgId)_$(request.auth.uid)).data.permissions;
+    }
+
+    function belongsToOrg(orgId) {
+      return resource.data.organization_id == orgId;
+    }
+
+    function isValidOrg(orgId) {
+      return request.resource.data.organization_id == orgId;
+    }
+
+    // Organizations
+    match /organizations/{orgId} {
+      allow read: if isMember(orgId);
+      allow create: if isAuthenticated();
+      allow update: if isOwner(orgId) || hasPermission(orgId, 'org:write');
+      allow delete: if isOwner(orgId);
+    }
+
+    // Organization Members
+    match /organization_members/{memberId} {
+      allow read: if isAuthenticated() &&
+        (resource.data.user_id == request.auth.uid || isOwner(resource.data.organization_id));
+      allow create: if isAuthenticated() && isOwner(request.resource.data.organization_id);
+      allow update: if isOwner(resource.data.organization_id);
+      allow delete: if isOwner(resource.data.organization_id);
+    }
+
+    // Facilities
+    match /facilities/{facilityId} {
+      allow read: if isMember(resource.data.organization_id);
+      allow create: if isAuthenticated() && isMember(request.resource.data.organization_id);
+      allow update: if isMember(resource.data.organization_id);
+      allow delete: if isOwner(resource.data.organization_id);
+    }
+
+    // Asset Categories
+    match /asset_categories/{categoryId} {
+      allow read: if isMember(resource.data.organization_id);
+      allow create: if isAuthenticated() && isMember(request.resource.data.organization_id);
+      allow update: if isMember(resource.data.organization_id);
+      allow delete: if isOwner(resource.data.organization_id);
+    }
+
+    // Assets
+    match /assets/{assetId} {
+      allow read: if isMember(resource.data.organization_id);
+      allow create: if isAuthenticated() && isMember(request.resource.data.organization_id);
+      allow update: if isMember(resource.data.organization_id);
+      allow delete: if isOwner(resource.data.organization_id);
+    }
+
+    // Customers
+    match /customers/{customerId} {
+      allow read: if isMember(resource.data.organization_id);
+      allow create: if isAuthenticated() && isMember(request.resource.data.organization_id);
+      allow update: if isMember(resource.data.organization_id);
+      allow delete: if isOwner(resource.data.organization_id);
+    }
+
+    // Orders
+    match /orders/{orderId} {
+      allow read: if isMember(resource.data.organization_id);
+      allow create: if isAuthenticated() && isMember(request.resource.data.organization_id);
+      allow update: if isMember(resource.data.organization_id);
+      allow delete: if isOwner(resource.data.organization_id);
+    }
+
+    // Vehicles
+    match /vehicles/{vehicleId} {
+      allow read: if isMember(resource.data.organization_id);
+      allow create: if isAuthenticated() && isMember(request.resource.data.organization_id);
+      allow update: if isMember(resource.data.organization_id);
+      allow delete: if isOwner(resource.data.organization_id);
+    }
+
+    // Drivers
+    match /drivers/{driverId} {
+      allow read: if isMember(resource.data.organization_id);
+      allow create: if isAuthenticated() && isMember(request.resource.data.organization_id);
+      allow update: if isMember(resource.data.organization_id);
+      allow delete: if isOwner(resource.data.organization_id);
+    }
+
+    // Routes
+    match /routes/{routeId} {
+      allow read: if isMember(resource.data.organization_id);
+      allow create: if isAuthenticated() && isMember(request.resource.data.organization_id);
+      allow update: if isMember(resource.data.organization_id);
+      allow delete: if isOwner(resource.data.organization_id);
+    }
+
+    // Inventory
+    match /inventory/{inventoryId} {
+      allow read: if isMember(resource.data.organization_id);
+      allow create: if isAuthenticated() && isMember(request.resource.data.organization_id);
+      allow update: if isMember(resource.data.organization_id);
+      allow delete: if isOwner(resource.data.organization_id);
+    }
+
+    // Incidents
+    match /incidents/{incidentId} {
+      allow read: if isMember(resource.data.organization_id);
+      allow create: if isAuthenticated() && isMember(request.resource.data.organization_id);
+      allow update: if isMember(resource.data.organization_id);
+      allow delete: if isOwner(resource.data.organization_id);
+    }
+
+    // Contracts
+    match /contracts/{contractId} {
+      allow read: if isMember(resource.data.organization_id);
+      allow create: if isAuthenticated() && isMember(request.resource.data.organization_id);
+      allow update: if isMember(resource.data.organization_id);
+      allow delete: if isOwner(resource.data.organization_id);
+    }
+
+    // Events
+    match /events/{eventId} {
+      allow read: if isMember(resource.data.organization_id);
+      allow create: if isAuthenticated() && isMember(request.resource.data.organization_id);
+      allow update: if false; // Events are immutable
+      allow delete: if false; // Events cannot be deleted
+    }
+
+    // Workflows
+    match /workflows/{workflowId} {
+      allow read: if isMember(resource.data.organization_id);
+      allow create: if isAuthenticated() && isMember(request.resource.data.organization_id);
+      allow update: if isMember(resource.data.organization_id);
+      allow delete: if isOwner(resource.data.organization_id);
+    }
+
+    // Audit Logs
+    match /audit_logs/{logId} {
+      allow read: if isOwner(resource.data.organization_id);
+      allow create: if isAuthenticated();
+      allow update: if false; // Audit logs are immutable
+      allow delete: if false; // Audit logs cannot be deleted
+    }
+  }
+}
