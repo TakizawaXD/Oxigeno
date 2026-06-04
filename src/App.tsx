@@ -62,8 +62,9 @@ function App() {
         <Route path="/onboarding" element={<ClientQuestionnaire />} />
 
         {/* Main app routes */}
-        <Route path="/" element={<MainLayout />}>
+        <Route path="/dashboard" element={<MainLayout />}>
           <Route index element={<DashboardPage />} />
+          <Route path="" element={<DashboardPage />} />
           <Route path="assets" element={<AssetsPage />} />
           <Route path="assets/:id" element={<AssetsPage />} />
           <Route path="inventory" element={<InventoryPage />} />
@@ -79,11 +80,10 @@ function App() {
           <Route path="documents" element={<DocumentsPage />} />
           <Route path="settings" element={<SettingsPage />} />
           <Route path="invoices" element={<InvoicesPage />} />
-          <Route path="dashboard" element={<DashboardPage />} />
         </Route>
 
-        {/* Catch all - redirect to hero */}
-        <Route path="*" element={<Navigate to="/hero" replace />} />
+        {/* Catch all - redirect to home */}
+        <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
     </BrowserRouter>
   );
