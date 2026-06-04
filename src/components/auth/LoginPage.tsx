@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useAuthStore } from '../../stores/authStore';
 import { useTranslation } from '../../lib/translations';
@@ -9,18 +9,47 @@ import { supabase } from '../../lib/supabase';
 export function LoginPage() {
   const navigate = useNavigate();
   const { t, language, setLanguage } = useTranslation();
-  const { signIn, isLoading, error, clearError } = useAuthStore();
+  const { signIn, isLoading, error, clearError, user, organization } = useAuthStore();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
+  const [rememberMe, setRememberMe] = useState(false);
   const [googleLoading, setGoogleLoading] = useState(false);
+
+  // Si ya está autenticado, redirigir al dashboard
+  useEffect(() => {
+    if (user && organization) {
+      navigate('/dashboard');
+    }
+  }, [user, organization, navigate]);
+
+  // Cargar credenciales guardadas
+  useEffect(() => {
+    const savedEmail = localStorage.getItem('rememberMe_email');
+    const savedPassword = localStorage.getItem('rememberMe_password');
+    if (savedEmail && savedPassword) {
+      setEmail(savedEmail);
+      setPassword(savedPassword);
+      setRememberMe(true);
+    }
+  }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     clearError();
+
+    // Guardar credenciales si Remember Me está activado
+    if (rememberMe) {
+      localStorage.setItem('rememberMe_email', email);
+      localStorage.setItem('rememberMe_password', password);
+    } else {
+      localStorage.removeItem('rememberMe_email');
+      localStorage.removeItem('rememberMe_password');
+    }
+
     try {
       await signIn(email, password);
-      navigate('/');
+      navigate('/dashboard');
     } catch (err) {
       // Error is handled by store
     }
@@ -169,7 +198,12 @@ export function LoginPage() {
 
               <div className="flex items-center justify-between">
                 <label className="flex items-center gap-2 cursor-pointer">
-                  <input type="checkbox" className="w-4 h-4 rounded border-secondary-300 text-primary-600 focus:ring-primary-500" />
+                  <input
+                    type="checkbox"
+                    checked={rememberMe}
+                    onChange={(e) => setRememberMe(e.target.checked)}
+                    className="w-4 h-4 rounded border-secondary-300 text-primary-600 focus:ring-primary-500"
+                  />
                   <span className="text-sm text-secondary-600 dark:text-secondary-400">{t.auth.rememberMe}</span>
                 </label>
                 <a href="#" className="text-sm text-primary-600 dark:text-primary-400 hover:underline">

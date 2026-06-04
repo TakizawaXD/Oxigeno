@@ -15,6 +15,7 @@ import { OrdersPage } from './pages/OrdersPage';
 import { FleetPage } from './pages/FleetPage';
 import { AIPage } from './pages/AIPage';
 import { SettingsPage } from './pages/SettingsPage';
+import { InvoicesPage } from './pages/InvoicesPage';
 import {
   CustomersPage,
   InventoryPage,
@@ -74,6 +75,8 @@ function App() {
           <Route path="facilities" element={<FacilitiesPage />} />
           <Route path="documents" element={<DocumentsPage />} />
           <Route path="settings" element={<SettingsPage />} />
+          <Route path="invoices" element={<InvoicesPage />} />
+          <Route path="dashboard" element={<DashboardPage />} />
         </Route>
 
         {/* Catch all - redirect to hero */}

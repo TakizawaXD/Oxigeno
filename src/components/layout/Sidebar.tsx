@@ -22,6 +22,7 @@ import {
   Building2,
   AlertTriangle,
   FileText,
+  Receipt,
 } from 'lucide-react';
 
 export function Sidebar() {
@@ -49,6 +50,7 @@ export function Sidebar() {
 
   const settingsNavigation = [
     { name: t.navigation.facilities, href: '/facilities', icon: Building2 },
+    { name: 'Facturas', href: '/invoices', icon: Receipt },
     { name: t.navigation.documents, href: '/documents', icon: FileText },
     { name: t.navigation.settings, href: '/settings', icon: Settings },
   ];
