@@ -5,8 +5,10 @@ import { HeroPage } from './pages/HeroPage';
 import { RecommendationsPage } from './pages/RecommendationsPage';
 import { LoginPage } from './components/auth/LoginPage';
 import { SignupPage } from './components/auth/SignupPage';
+import { AuthCallback } from './components/auth/AuthCallback';
 import { MainLayout } from './components/layout/MainLayout';
 import { ClientQuestionnaire } from './components/onboarding/ClientQuestionnaire';
+import { ProfileCompletionForm } from './components/onboarding/ProfileCompletionForm';
 import { DashboardPage } from './pages/DashboardPage';
 import { AssetsPage } from './pages/AssetsPage';
 import { OrdersPage } from './pages/OrdersPage';
@@ -51,6 +53,8 @@ function App() {
         {/* Auth routes */}
         <Route path="/login" element={<LoginPage />} />
         <Route path="/signup" element={<SignupPage />} />
+        <Route path="/auth/callback" element={<AuthCallback />} />
+        <Route path="/profile-completion" element={<ProfileCompletionForm />} />
         <Route path="/onboarding" element={<ClientQuestionnaire />} />
 
         {/* Main app routes */}
