@@ -3,6 +3,7 @@ import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { useAuthStore } from './stores/authStore';
 import { HeroPage } from './pages/HeroPage';
 import { RecommendationsPage } from './pages/RecommendationsPage';
+import { ProductPage } from './pages/ProductPage';
 import { LoginPage } from './components/auth/LoginPage';
 import { SignupPage } from './components/auth/SignupPage';
 import { AuthCallback } from './components/auth/AuthCallback';
@@ -48,6 +49,8 @@ function App() {
     <BrowserRouter>
       <Routes>
         {/* Landing pages */}
+        <Route path="/" element={<ProductPage />} />
+        <Route path="/product" element={<ProductPage />} />
         <Route path="/hero" element={<HeroPage />} />
         <Route path="/recommendations" element={<RecommendationsPage />} />
 
