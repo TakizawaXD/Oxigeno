@@ -1,6 +1,8 @@
 import { useEffect } from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { useAuthStore } from './stores/authStore';
+import { HeroPage } from './pages/HeroPage';
+import { RecommendationsPage } from './pages/RecommendationsPage';
 import { LoginPage } from './components/auth/LoginPage';
 import { SignupPage } from './components/auth/SignupPage';
 import { MainLayout } from './components/layout/MainLayout';
@@ -42,6 +44,10 @@ function App() {
   return (
     <BrowserRouter>
       <Routes>
+        {/* Landing pages */}
+        <Route path="/hero" element={<HeroPage />} />
+        <Route path="/recommendations" element={<RecommendationsPage />} />
+
         {/* Auth routes */}
         <Route path="/login" element={<LoginPage />} />
         <Route path="/signup" element={<SignupPage />} />
@@ -66,8 +72,8 @@ function App() {
           <Route path="settings" element={<SettingsPage />} />
         </Route>
 
-        {/* Catch all - redirect to dashboard */}
-        <Route path="*" element={<Navigate to="/" replace />} />
+        {/* Catch all - redirect to hero */}
+        <Route path="*" element={<Navigate to="/hero" replace />} />
       </Routes>
     </BrowserRouter>
   );
