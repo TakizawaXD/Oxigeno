@@ -150,61 +150,86 @@ export function InvoicesPage() {
               </button>
             </div>
           ) : (
-            <div className="card overflow-hidden">
+            <div className="card rounded-2xl overflow-hidden">
               <div className="overflow-x-auto">
                 <table className="w-full">
                   <thead>
-                    <tr className="border-b border-secondary-200 dark:border-secondary-800 bg-secondary-50 dark:bg-secondary-800/50">
-                      <th className="text-left py-4 px-6 font-semibold text-secondary-900 dark:text-white">Número</th>
-                      <th className="text-left py-4 px-6 font-semibold text-secondary-900 dark:text-white">Cliente</th>
-                      <th className="text-right py-4 px-6 font-semibold text-secondary-900 dark:text-white">Monto</th>
-                      <th className="text-left py-4 px-6 font-semibold text-secondary-900 dark:text-white">Método</th>
-                      <th className="text-left py-4 px-6 font-semibold text-secondary-900 dark:text-white">Estado</th>
-                      <th className="text-left py-4 px-6 font-semibold text-secondary-900 dark:text-white">Fecha</th>
-                      <th className="text-right py-4 px-6 font-semibold text-secondary-900 dark:text-white">Acciones</th>
+                    <tr className="border-b-2 border-secondary-200 dark:border-secondary-700 bg-gradient-to-r from-secondary-50 to-secondary-100 dark:from-secondary-800/50 dark:to-secondary-800/30">
+                      <th className="text-left py-5 px-6 font-bold text-secondary-900 dark:text-white text-sm">Número</th>
+                      <th className="text-left py-5 px-6 font-bold text-secondary-900 dark:text-white text-sm">Cliente</th>
+                      <th className="text-right py-5 px-6 font-bold text-secondary-900 dark:text-white text-sm">Monto</th>
+                      <th className="text-left py-5 px-6 font-bold text-secondary-900 dark:text-white text-sm">Método</th>
+                      <th className="text-center py-5 px-6 font-bold text-secondary-900 dark:text-white text-sm">Estado</th>
+                      <th className="text-left py-5 px-6 font-bold text-secondary-900 dark:text-white text-sm">Fecha</th>
+                      <th className="text-center py-5 px-6 font-bold text-secondary-900 dark:text-white text-sm">Acciones</th>
                     </tr>
                   </thead>
                   <tbody>
-                    {invoices.map(invoice => (
-                      <tr key={invoice.id} className="border-b border-secondary-100 dark:border-secondary-800 hover:bg-secondary-50 dark:hover:bg-secondary-800/30 transition">
-                        <td className="py-4 px-6 font-medium text-secondary-900 dark:text-white">{invoice.invoice_number}</td>
-                        <td className="py-4 px-6 text-secondary-700 dark:text-secondary-300">{invoice.customer_name}</td>
-                        <td className="py-4 px-6 text-right font-medium text-secondary-900 dark:text-white">
-                          ${invoice.total_amount.toFixed(2)}
-                        </td>
-                        <td className="py-4 px-6">
-                          <span className="inline-flex px-3 py-1 rounded-full text-xs font-medium bg-primary-100 dark:bg-primary-900/30 text-primary-700 dark:text-primary-400">
-                            {invoice.payment_method === 'virtual' ? 'Virtual' : 'Efectivo'}
+                    {invoices.map((invoice, idx) => (
+                      <tr
+                        key={invoice.id}
+                        className="border-b border-secondary-100 dark:border-secondary-800 hover:bg-primary-50 dark:hover:bg-primary-900/10 transition duration-200"
+                      >
+                        <td className="py-5 px-6">
+                          <span className="font-bold text-primary-600 dark:text-primary-400">
+                            {invoice.invoice_number}
                           </span>
                         </td>
-                        <td className="py-4 px-6">
-                          <span className={cn('inline-flex px-3 py-1 rounded-full text-xs font-medium', getPaymentStatusColor(invoice.payment_status))}>
-                            {invoice.payment_status === 'completed' ? 'Completado' : invoice.payment_status === 'pending' ? 'Pendiente' : 'Cancelado'}
+                        <td className="py-5 px-6">
+                          <div>
+                            <p className="font-medium text-secondary-900 dark:text-white">
+                              {invoice.customer_name}
+                            </p>
+                            <p className="text-xs text-secondary-500 dark:text-secondary-400">
+                              {invoice.customer_email}
+                            </p>
+                          </div>
+                        </td>
+                        <td className="py-5 px-6 text-right">
+                          <span className="font-bold text-secondary-900 dark:text-white text-lg">
+                            ${invoice.total_amount.toFixed(2)}
                           </span>
                         </td>
-                        <td className="py-4 px-6 text-secondary-700 dark:text-secondary-300">
+                        <td className="py-5 px-6">
+                          <span className={cn(
+                            'inline-flex px-3 py-1 rounded-full text-xs font-semibold',
+                            invoice.payment_method === 'virtual'
+                              ? 'bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400'
+                              : 'bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-400'
+                          )}>
+                            {invoice.payment_method === 'virtual' ? '💳 Virtual' : '💵 Efectivo'}
+                          </span>
+                        </td>
+                        <td className="py-5 px-6 text-center">
+                          <span className={cn('inline-flex px-3 py-1 rounded-full text-xs font-semibold', getPaymentStatusColor(invoice.payment_status))}>
+                            {invoice.payment_status === 'completed' ? '✓ Completado' : invoice.payment_status === 'pending' ? '⏳ Pendiente' : '✕ Cancelado'}
+                          </span>
+                        </td>
+                        <td className="py-5 px-6 text-secondary-600 dark:text-secondary-400 text-sm">
                           {new Date(invoice.issued_date).toLocaleDateString('es-ES')}
                         </td>
-                        <td className="py-4 px-6 text-right space-x-2 flex items-center justify-end gap-2">
-                          <button
-                            title="Ver factura"
-                            className="p-2 hover:bg-primary-100 dark:hover:bg-primary-900/20 rounded transition"
-                          >
-                            <Eye className="w-4 h-4 text-primary-600" />
-                          </button>
-                          <button
-                            title="Descargar PDF"
-                            className="p-2 hover:bg-primary-100 dark:hover:bg-primary-900/20 rounded transition"
-                          >
-                            <Download className="w-4 h-4 text-primary-600" />
-                          </button>
-                          <button
-                            onClick={() => handleDelete(invoice.id)}
-                            title="Eliminar factura"
-                            className="p-2 hover:bg-error-100 dark:hover:bg-error-900/20 rounded transition"
-                          >
-                            <Trash2 className="w-4 h-4 text-error-600" />
-                          </button>
+                        <td className="py-5 px-6">
+                          <div className="flex items-center justify-center gap-1">
+                            <button
+                              title="Ver factura"
+                              className="p-2 hover:bg-primary-100 dark:hover:bg-primary-900/20 rounded-lg transition hover:scale-110 duration-200"
+                            >
+                              <Eye className="w-4 h-4 text-primary-600 dark:text-primary-400" />
+                            </button>
+                            <button
+                              title="Descargar PDF"
+                              className="p-2 hover:bg-blue-100 dark:hover:bg-blue-900/20 rounded-lg transition hover:scale-110 duration-200"
+                            >
+                              <Download className="w-4 h-4 text-blue-600 dark:text-blue-400" />
+                            </button>
+                            <button
+                              onClick={() => handleDelete(invoice.id)}
+                              title="Eliminar factura"
+                              className="p-2 hover:bg-error-100 dark:hover:bg-error-900/20 rounded-lg transition hover:scale-110 duration-200"
+                            >
+                              <Trash2 className="w-4 h-4 text-error-600 dark:text-error-400" />
+                            </button>
+                          </div>
                         </td>
                       </tr>
                     ))}

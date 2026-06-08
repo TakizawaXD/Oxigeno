@@ -1,4 +1,5 @@
 import { useNavigate } from 'react-router-dom';
+import { useState } from 'react';
 import {
   Activity,
   ArrowRight,
@@ -19,10 +20,39 @@ import {
   FileText,
   Smartphone as Mobile,
   DollarSign,
+  Star,
+  Quote,
+  Play,
+  Sparkles,
 } from 'lucide-react';
 
 export function ProductPage() {
   const navigate = useNavigate();
+  const [hoveredCard, setHoveredCard] = useState<number | null>(null);
+
+  const testimonials = [
+    {
+      name: 'Dr. Juan Martínez',
+      role: 'CEO, Hospital Central',
+      text: 'HealthLogix redujo nuestras operaciones en 40% y ahorramos $100K en el primer año.',
+      avatar: '🏥',
+      stars: 5,
+    },
+    {
+      name: 'María López',
+      role: 'Directora, Clínica San Juan',
+      text: 'Las facturas automáticas nos ahorran 90% del tiempo. Es increíblemente simple.',
+      avatar: '💼',
+      stars: 5,
+    },
+    {
+      name: 'Carlos Rodríguez',
+      role: 'Gerente, MediDist S.A.',
+      text: 'Precisión de entregas 99.9%. Nuestros clientes están mucho más felices.',
+      avatar: '🚚',
+      stars: 5,
+    },
+  ];
 
   const features = [
     {
@@ -369,50 +399,62 @@ export function ProductPage() {
             {pricingPlans.map((plan, i) => (
               <div
                 key={i}
-                className={`card p-8 flex flex-col ${
-                  plan.popular ? 'lg:scale-105 border-2 border-primary-600 shadow-xl' : 'border-2 border-secondary-200 dark:border-secondary-700'
+                className={`group relative rounded-3xl overflow-hidden transition-all duration-300 ${
+                  plan.popular ? 'lg:scale-105' : ''
                 }`}
+                onMouseEnter={() => setHoveredCard(i + 10)}
+                onMouseLeave={() => setHoveredCard(null)}
               >
                 {plan.popular && (
-                  <div className="mb-4 inline-block px-3 py-1 rounded-full bg-primary-100 dark:bg-primary-900/30 text-primary-700 dark:text-primary-400 text-xs font-bold w-fit">
-                    MÁS POPULAR
-                  </div>
+                  <div className="absolute inset-0 bg-gradient-to-b from-primary-600/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity z-0" />
                 )}
 
-                <h3 className="text-2xl font-bold text-secondary-900 dark:text-white mb-2">
-                  {plan.name}
-                </h3>
-                <p className="text-secondary-600 dark:text-secondary-400 text-sm mb-4">
-                  {plan.description}
-                </p>
-
-                <div className="mb-6">
-                  <div className="text-4xl font-bold text-primary-600">
-                    {plan.price}
-                  </div>
-                  <div className="text-secondary-600 dark:text-secondary-400 text-sm">
-                    {plan.period}
-                  </div>
-                </div>
-
-                <button
-                  onClick={() => navigate('/signup')}
-                  className={`w-full py-3 rounded-lg font-semibold transition mb-6 ${
-                    plan.popular
-                      ? 'bg-primary-600 hover:bg-primary-700 text-white'
-                      : 'border-2 border-primary-600 text-primary-600 hover:bg-primary-50 dark:hover:bg-primary-900/20'
-                  }`}
-                >
-                  {plan.cta}
-                </button>
-
-                <div className="space-y-3 flex-1">
-                  {plan.features.map((feature, j) => (
-                    <div key={j} className="flex items-center gap-3 text-sm text-secondary-700 dark:text-secondary-300">
-                      <CheckCircle2 className="w-4 h-4 text-primary-600 flex-shrink-0" />
-                      {feature}
+                <div className={`card p-8 flex flex-col relative z-10 h-full ${
+                  plan.popular ? 'border-2 border-primary-600 shadow-2xl' : 'border-2 border-secondary-200 dark:border-secondary-700'
+                }`}>
+                  {plan.popular && (
+                    <div className="mb-4 inline-block px-4 py-2 rounded-full bg-gradient-to-r from-primary-600 to-cyan-600 text-white text-xs font-bold w-fit">
+                      <Star className="w-3 h-3 inline mr-1 fill-current" />
+                      MÁS POPULAR
                     </div>
-                  ))}
+                  )}
+
+                  <h3 className="text-2xl font-bold text-secondary-900 dark:text-white mb-2">
+                    {plan.name}
+                  </h3>
+                  <p className="text-secondary-600 dark:text-secondary-400 text-sm mb-6">
+                    {plan.description}
+                  </p>
+
+                  <div className="mb-8">
+                    <div className="text-5xl font-bold text-primary-600 mb-1">
+                      {plan.price}
+                    </div>
+                    <div className="text-secondary-600 dark:text-secondary-400 text-sm">
+                      {plan.period}
+                    </div>
+                  </div>
+
+                  <button
+                    onClick={() => navigate('/signup')}
+                    className={`w-full py-3 px-4 rounded-lg font-bold transition mb-8 flex items-center justify-center gap-2 group/btn ${
+                      plan.popular
+                        ? 'bg-gradient-to-r from-primary-600 to-cyan-600 hover:from-primary-700 hover:to-cyan-700 text-white shadow-lg'
+                        : 'border-2 border-primary-600 text-primary-600 hover:bg-primary-50 dark:hover:bg-primary-900/20'
+                    }`}
+                  >
+                    {plan.cta}
+                    <ArrowRight className="w-4 h-4 group-hover/btn:translate-x-1 transition" />
+                  </button>
+
+                  <div className="space-y-3 flex-1">
+                    {plan.features.map((feature, j) => (
+                      <div key={j} className="flex items-start gap-3 text-sm text-secondary-700 dark:text-secondary-300">
+                        <CheckCircle2 className="w-5 h-5 text-primary-600 flex-shrink-0 mt-0.5" />
+                        <span>{feature}</span>
+                      </div>
+                    ))}
+                  </div>
                 </div>
               </div>
             ))}
@@ -420,23 +462,89 @@ export function ProductPage() {
         </div>
       </section>
 
-      {/* CTA */}
+      {/* Testimonios */}
+      <section className="py-20 px-4 sm:px-6 lg:px-8">
+        <div className="max-w-7xl mx-auto">
+          <div className="text-center mb-16">
+            <h2 className="text-4xl font-bold text-secondary-900 dark:text-white mb-4">
+              Lo que dicen nuestros clientes
+            </h2>
+            <p className="text-xl text-secondary-600 dark:text-secondary-400">
+              Empresas líderes confían en HealthLogix OS
+            </p>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+            {testimonials.map((testimonial, i) => (
+              <div
+                key={i}
+                className="card p-8 rounded-2xl hover:shadow-xl transition duration-300 flex flex-col"
+                onMouseEnter={() => setHoveredCard(i)}
+                onMouseLeave={() => setHoveredCard(null)}
+              >
+                <div className="flex items-center gap-2 mb-4">
+                  {[...Array(testimonial.stars)].map((_, j) => (
+                    <Star key={j} className="w-5 h-5 fill-warning-400 text-warning-400" />
+                  ))}
+                </div>
+
+                <Quote className="w-8 h-8 text-primary-300 mb-4" />
+
+                <p className="text-secondary-700 dark:text-secondary-300 mb-6 flex-1 text-lg italic">
+                  "{testimonial.text}"
+                </p>
+
+                <div className="flex items-center gap-4 pt-4 border-t border-secondary-200 dark:border-secondary-700">
+                  <div className="text-3xl">{testimonial.avatar}</div>
+                  <div>
+                    <p className="font-semibold text-secondary-900 dark:text-white">
+                      {testimonial.name}
+                    </p>
+                    <p className="text-sm text-secondary-600 dark:text-secondary-400">
+                      {testimonial.role}
+                    </p>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* CTA Final */}
       <section className="py-20 px-4 sm:px-6 lg:px-8">
         <div className="max-w-4xl mx-auto">
-          <div className="card p-12 text-center bg-gradient-to-r from-primary-600 to-cyan-600 text-white">
-            <h2 className="text-4xl font-bold mb-4">
-              ¿Listo para Revolucionar tu Logística?
-            </h2>
-            <p className="text-xl text-primary-100 mb-8">
-              Únete a las 500+ empresas que ya confían en HealthLogix OS
-            </p>
-            <button
-              onClick={() => navigate('/signup')}
-              className="px-8 py-4 rounded-lg bg-white text-primary-700 font-semibold hover:bg-gray-50 transition inline-flex items-center gap-2"
-            >
-              Comienza tu Prueba Gratuita
-              <ArrowRight className="w-5 h-5" />
-            </button>
+          <div className="relative rounded-3xl overflow-hidden">
+            <div className="absolute inset-0 bg-gradient-to-r from-primary-600 via-cyan-600 to-primary-600 opacity-100" />
+            <div className="relative p-12 sm:p-16 text-center text-white">
+              <Sparkles className="w-12 h-12 mx-auto mb-6 opacity-80" />
+              <h2 className="text-4xl font-bold mb-4">
+                ¿Listo para Revolucionar tu Logística?
+              </h2>
+              <p className="text-xl text-primary-100 mb-8 max-w-2xl mx-auto">
+                Únete a las 500+ empresas que ya confían en HealthLogix OS.
+                Implementación en menos de 1 hora. Sin tarjeta requerida.
+              </p>
+              <div className="flex flex-col sm:flex-row gap-4 justify-center">
+                <button
+                  onClick={() => navigate('/signup')}
+                  className="px-8 py-4 rounded-lg bg-white text-primary-700 font-bold hover:bg-gray-50 transition inline-flex items-center justify-center gap-2 group"
+                >
+                  Comienza Gratis
+                  <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition" />
+                </button>
+                <button
+                  onClick={() => navigate('/recommendations')}
+                  className="px-8 py-4 rounded-lg border-2 border-white text-white font-bold hover:bg-white/10 transition inline-flex items-center justify-center gap-2"
+                >
+                  <Play className="w-5 h-5" />
+                  Ver Demo
+                </button>
+              </div>
+              <p className="text-primary-100 text-sm mt-6">
+                ✓ Sin tarjeta de crédito • ✓ Acceso inmediato • ✓ Soporte 24/7
+              </p>
+            </div>
           </div>
         </div>
       </section>

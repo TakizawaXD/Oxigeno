@@ -14,6 +14,7 @@ import {
   DollarSign,
   CreditCard,
   Banknote,
+  Users,
 } from 'lucide-react';
 
 interface InvoiceItem {
@@ -197,53 +198,56 @@ export function InvoiceGenerator() {
 
       <form onSubmit={handleSubmit} className="space-y-6">
         {/* Customer Info */}
-        <div className="card p-6">
-          <h2 className="text-xl font-bold text-secondary-900 dark:text-white mb-4">Información del Cliente</h2>
+        <div className="card p-8 rounded-2xl border-2 border-primary-100 dark:border-primary-900/30">
+          <h2 className="text-2xl font-bold text-secondary-900 dark:text-white mb-6 flex items-center gap-2">
+            <Users className="w-6 h-6 text-primary-600" />
+            Información del Cliente
+          </h2>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
             <div>
-              <label className="label">Nombre del Cliente *</label>
+              <label className="label font-semibold mb-2">Nombre del Cliente *</label>
               <input
                 type="text"
                 value={formData.customer_name}
                 onChange={e => setFormData(prev => ({ ...prev, customer_name: e.target.value }))}
                 placeholder="Juan Pérez"
-                className="input"
+                className="input rounded-lg border-2 border-secondary-200 dark:border-secondary-700 focus:border-primary-500 focus:ring-primary-500 px-4 py-3"
                 required
               />
             </div>
 
             <div>
-              <label className="label">Email *</label>
+              <label className="label font-semibold mb-2">Email *</label>
               <input
                 type="email"
                 value={formData.customer_email}
                 onChange={e => setFormData(prev => ({ ...prev, customer_email: e.target.value }))}
                 placeholder="cliente@example.com"
-                className="input"
+                className="input rounded-lg border-2 border-secondary-200 dark:border-secondary-700 focus:border-primary-500 focus:ring-primary-500 px-4 py-3"
                 required
               />
             </div>
 
             <div>
-              <label className="label">Teléfono</label>
+              <label className="label font-semibold mb-2">Teléfono</label>
               <input
                 type="tel"
                 value={formData.customer_phone}
                 onChange={e => setFormData(prev => ({ ...prev, customer_phone: e.target.value }))}
                 placeholder="+1 (555) 000-0000"
-                className="input"
+                className="input rounded-lg border-2 border-secondary-200 dark:border-secondary-700 focus:border-primary-500 focus:ring-primary-500 px-4 py-3"
               />
             </div>
 
             <div>
-              <label className="label">Dirección</label>
+              <label className="label font-semibold mb-2">Dirección</label>
               <input
                 type="text"
                 value={formData.customer_address}
                 onChange={e => setFormData(prev => ({ ...prev, customer_address: e.target.value }))}
                 placeholder="Calle 123, Ciudad"
-                className="input"
+                className="input rounded-lg border-2 border-secondary-200 dark:border-secondary-700 focus:border-primary-500 focus:ring-primary-500 px-4 py-3"
               />
             </div>
           </div>
