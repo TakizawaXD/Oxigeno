@@ -273,7 +273,7 @@ export function LoginPage() {
               <div className="w-full border-t border-secondary-200 dark:border-secondary-800" />
             </div>
             <div className="relative flex justify-center text-sm">
-              <span className="px-4 bg-secondary-50 dark:bg-secondary-950 text-secondary-500">{t.auth.newToHealthLogix}</span>
+              <span className="px-4 bg-secondary-50 dark:bg-secondary-950 text-secondary-500">{t.auth.newToOxisan}</span>
             </div>
           </div>
 

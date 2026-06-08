@@ -32,7 +32,7 @@ export function SettingsPage() {
   const { organization, user, signOut } = useAuthStore();
   const { businessType, setBusinessType } = useUIStore();
   const [orgName, setOrgName] = useState(organization?.name || '');
-  const [logoName, setLogoName] = useState(organization?.name || 'HealthLogix OS');
+  const [logoName, setLogoName] = useState(organization?.name || 'Oxisan');
   const [selectedBusinessType, setSelectedBusinessType] = useState(businessType);
   const [saving, setSaving] = useState(false);
   const [exporting, setExporting] = useState(false);
@@ -96,7 +96,7 @@ export function SettingsPage() {
       const url = URL.createObjectURL(dataBlob);
       const link = document.createElement('a');
       link.href = url;
-      link.download = `healthlogix-export-${Date.now()}.json`;
+      link.download = `oxisan-export-${Date.now()}.json`;
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);
@@ -231,7 +231,7 @@ export function SettingsPage() {
                   value={logoName}
                   onChange={(e) => setLogoName(e.target.value)}
                   className="input"
-                  placeholder="Por ejemplo: HealthLogix OS, Mi Empresa, etc."
+                  placeholder="Por ejemplo: Oxisan, Mi Empresa, etc."
                 />
                 <p className="text-xs text-secondary-500 dark:text-secondary-400 mt-1">
                   Este nombre aparecerá en el logo de tu aplicación

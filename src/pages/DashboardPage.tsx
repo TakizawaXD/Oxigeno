@@ -18,8 +18,7 @@ import {
   Zap,
   BarChart3,
   Calendar,
-  Eye,
-  EyeOff,
+  Plus,
 } from 'lucide-react';
 
 interface DashboardStats {
@@ -386,5 +385,3 @@ export function DashboardPage() {
   );
 }
 
-// Helper imports
-import { Plus } from 'lucide-react';

@@ -93,7 +93,7 @@ export function InvoicePDFPreview({ invoice }: { invoice: InvoiceData }) {
           <div className="flex justify-between items-start mb-4">
             <div>
               <h1 className="text-3xl font-bold text-primary-600">{invoice.company_name}</h1>
-              <p className="text-gray-600 text-sm">HealthLogix OS - Sistema de Logística Sanitaria</p>
+              <p className="text-gray-600 text-sm">Oxisan - Sistema de Logística Sanitaria</p>
             </div>
             <div className="text-right">
               <div className="text-4xl font-bold text-gray-300">FACTURA</div>
@@ -130,7 +130,7 @@ export function InvoicePDFPreview({ invoice }: { invoice: InvoiceData }) {
             <p className="text-xs uppercase text-gray-600 font-semibold mb-2">De</p>
             <div className="space-y-1 text-sm">
               <p className="font-bold text-gray-900">{invoice.company_name}</p>
-              <p className="text-gray-600">HealthLogix OS</p>
+              <p className="text-gray-600">Oxisan</p>
               <p className="text-gray-600">Sistema de Logística Sanitaria</p>
               <p className="text-primary-600 font-semibold">www.healthlogix.com</p>
             </div>
@@ -199,7 +199,7 @@ export function InvoicePDFPreview({ invoice }: { invoice: InvoiceData }) {
 
         {/* Footer */}
         <div className="border-t border-gray-300 pt-4 mt-6 text-center text-xs text-gray-600">
-          <p>Gracias por su negocio • HealthLogix OS - Sistema de Logística Sanitaria</p>
+          <p>Gracias por su negocio • Oxisan - Sistema de Logística Sanitaria</p>
           <p className="mt-1">Factura generada el {new Date().toLocaleDateString('es-ES')} a las {new Date().toLocaleTimeString('es-ES')}</p>
         </div>
       </div>

@@ -33,26 +33,26 @@ export function Sidebar() {
   const location = useLocation();
 
   const mainNavigation = [
-    { name: t.navigation.dashboard, href: '/', icon: LayoutDashboard },
-    { name: term.assets, href: '/assets', icon: Package },
-    { name: t.navigation.inventory, href: '/inventory', icon: Warehouse },
-    { name: t.navigation.orders, href: '/orders', icon: ClipboardList },
-    { name: t.navigation.fleet, href: '/fleet', icon: Truck },
-    { name: t.navigation.routes, href: '/routes', icon: Truck },
-    { name: t.navigation.customers, href: '/customers', icon: Users },
-    { name: t.navigation.incidents, href: '/incidents', icon: AlertTriangle },
+    { name: t.navigation.dashboard, href: '/dashboard', icon: LayoutDashboard, exact: true },
+    { name: term.assets, href: '/dashboard/assets', icon: Package, exact: false },
+    { name: t.navigation.inventory, href: '/dashboard/inventory', icon: Warehouse, exact: false },
+    { name: t.navigation.orders, href: '/dashboard/orders', icon: ClipboardList, exact: false },
+    { name: t.navigation.fleet, href: '/dashboard/fleet', icon: Truck, exact: false },
+    { name: t.navigation.routes, href: '/dashboard/routes', icon: Truck, exact: false },
+    { name: t.navigation.customers, href: '/dashboard/customers', icon: Users, exact: false },
+    { name: t.navigation.incidents, href: '/dashboard/incidents', icon: AlertTriangle, exact: false },
   ];
 
   const aiNavigation = [
-    { name: t.navigation.ai, href: '/ai', icon: Sparkles },
-    { name: t.navigation.workflows, href: '/workflows', icon: Workflow },
+    { name: t.navigation.ai, href: '/dashboard/ai', icon: Sparkles },
+    { name: t.navigation.workflows, href: '/dashboard/workflows', icon: Workflow },
   ];
 
   const settingsNavigation = [
-    { name: t.navigation.facilities, href: '/facilities', icon: Building2 },
-    { name: 'Facturas', href: '/invoices', icon: Receipt },
-    { name: t.navigation.documents, href: '/documents', icon: FileText },
-    { name: t.navigation.settings, href: '/settings', icon: Settings },
+    { name: t.navigation.facilities, href: '/dashboard/facilities', icon: Building2 },
+    { name: 'Facturas', href: '/dashboard/invoices', icon: Receipt },
+    { name: t.navigation.documents, href: '/dashboard/documents', icon: FileText },
+    { name: t.navigation.settings, href: '/dashboard/settings', icon: Settings },
   ];
 
   return (
@@ -82,7 +82,7 @@ export function Sidebar() {
             {!sidebarCollapsed && (
               <div className="overflow-hidden">
                 <div className="text-lg font-bold text-secondary-900 dark:text-white truncate">
-                  {organization?.name || 'HealthLogix'}
+                  {organization?.name || 'Oxisan'}
                 </div>
                 <div className="text-xs text-secondary-500 dark:text-secondary-400 truncate max-w-[170px]" title={term.dashboardTitle}>
                   {term.dashboardTitle}
@@ -130,11 +130,14 @@ export function Sidebar() {
               </div>
             )}
             {mainNavigation.map((item) => {
-              const isActive = location.pathname === item.href || location.pathname.startsWith(item.href + '/');
+              const isActive = item.exact
+                ? location.pathname === item.href
+                : location.pathname === item.href || location.pathname.startsWith(item.href + '/');
               return (
                 <NavLink
                   key={item.name}
                   to={item.href}
+                  end={item.exact}
                   className={cn(
                     'flex items-center gap-3 px-3 py-2.5 rounded-lg transition-all duration-200',
                     isActive
@@ -143,9 +146,7 @@ export function Sidebar() {
                     sidebarCollapsed && 'justify-center'
                   )}
                   onClick={() => {
-                    if (window.innerWidth < 1024) {
-                      setSidebarOpen(false);
-                    }
+                    if (window.innerWidth < 1024) setSidebarOpen(false);
                   }}
                 >
                   <item.icon className={cn('w-5 h-5 flex-shrink-0', isActive && 'text-primary-600 dark:text-primary-400')} />

@@ -39,7 +39,7 @@ function App() {
       <div className="min-h-screen bg-secondary-50 dark:bg-secondary-950 flex items-center justify-center">
         <div className="text-center">
           <div className="spinner-lg text-primary-600 mx-auto" />
-          <p className="mt-4 text-secondary-500 dark:text-secondary-400">Loading HealthLogix OS...</p>
+          <p className="mt-4 text-secondary-500 dark:text-secondary-400">Loading Oxisan...</p>
         </div>
       </div>
     );

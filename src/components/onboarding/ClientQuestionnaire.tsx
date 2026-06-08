@@ -156,7 +156,7 @@ export function ClientQuestionnaire() {
         {/* Header */}
         <div className="text-center mb-8 sm:mb-12">
           <h1 className="text-2xl sm:text-4xl font-bold text-secondary-900 dark:text-white mb-2">
-            Bienvenido a HealthLogix OS
+            Bienvenido a Oxisan
           </h1>
           <p className="text-secondary-600 dark:text-secondary-400">
             Cuéntanos sobre tu negocio para personalizar la plataforma

@@ -34,7 +34,7 @@ export function ProductPage() {
     {
       name: 'Dr. Juan Martínez',
       role: 'CEO, Hospital Central',
-      text: 'HealthLogix redujo nuestras operaciones en 40% y ahorramos $100K en el primer año.',
+      text: 'Oxisan redujo nuestras operaciones en 40% y ahorramos $100K en el primer año.',
       avatar: '🏥',
       stars: 5,
     },
@@ -200,9 +200,9 @@ export function ProductPage() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
           <div className="flex items-center gap-2">
             <div className="w-10 h-10 rounded-full bg-gradient-to-br from-primary-600 to-primary-700 flex items-center justify-center text-white font-bold">
-              HL
+OX
             </div>
-            <span className="text-xl font-bold text-secondary-900 dark:text-white">HealthLogix OS</span>
+            <span className="text-xl font-bold text-secondary-900 dark:text-white">Oxisan</span>
           </div>
 
           <div className="flex items-center gap-6">
@@ -470,7 +470,7 @@ export function ProductPage() {
               Lo que dicen nuestros clientes
             </h2>
             <p className="text-xl text-secondary-600 dark:text-secondary-400">
-              Empresas líderes confían en HealthLogix OS
+              Empresas líderes confían en Oxisan OS
             </p>
           </div>
 
@@ -522,7 +522,7 @@ export function ProductPage() {
                 ¿Listo para Revolucionar tu Logística?
               </h2>
               <p className="text-xl text-primary-100 mb-8 max-w-2xl mx-auto">
-                Únete a las 500+ empresas que ya confían en HealthLogix OS.
+                Únete a las 500+ empresas que ya confían en Oxisan OS.
                 Implementación en menos de 1 hora. Sin tarjeta requerida.
               </p>
               <div className="flex flex-col sm:flex-row gap-4 justify-center">
@@ -556,9 +556,9 @@ export function ProductPage() {
             <div>
               <div className="flex items-center gap-2 mb-4">
                 <div className="w-8 h-8 rounded-full bg-primary-600 flex items-center justify-center text-white text-sm font-bold">
-                  HL
+    OX
                 </div>
-                <span className="font-bold text-white">HealthLogix OS</span>
+                <span className="font-bold text-white">Oxisan OS</span>
               </div>
               <p className="text-sm">La solución completa para logística sanitaria</p>
             </div>
@@ -592,7 +592,7 @@ export function ProductPage() {
           </div>
 
           <div className="border-t border-secondary-800 pt-8 text-center text-sm">
-            <p>&copy; 2024 HealthLogix OS. Todos los derechos reservados.</p>
+            <p>&copy; 2024 Oxisan OS. Todos los derechos reservados.</p>
           </div>
         </div>
       </footer>

@@ -2,7 +2,7 @@ import { useUIStore } from '../stores/uiStore';
 
 export const es = {
   app: {
-    name: 'HealthLogix OS',
+    name: 'Oxisan',
     subtitle: 'Sistema Operativo de Logística Sanitaria',
   },
   auth: {
@@ -17,7 +17,7 @@ export const es = {
     createAccount: 'Crear Cuenta',
     rememberMe: 'Recuérdame',
     forgotPassword: '¿Olvidaste tu contraseña?',
-    newToHealthLogix: '¿Nuevo en HealthLogix?',
+    newToOxisan: '¿Nuevo en Oxisan?',
     signUp: 'Registrarse',
     backToSignIn: 'Volver a Iniciar Sesión',
     agreeToTerms: 'Acepto los Términos de Servicio y Política de Privacidad',
@@ -277,7 +277,7 @@ export const es = {
 
 export const en = {
   app: {
-    name: 'HealthLogix OS',
+    name: 'Oxisan',
     subtitle: 'Healthcare Logistics Operating System',
   },
   auth: {
@@ -292,7 +292,7 @@ export const en = {
     createAccount: 'Create Account',
     rememberMe: 'Remember Me',
     forgotPassword: 'Forgot Password',
-    newToHealthLogix: 'New to HealthLogix',
+    newToOxisan: 'New to Oxisan',
     signUp: 'Sign Up',
     backToSignIn: 'Back to Sign In',
     agreeToTerms: 'I agree to the Terms of Service and Privacy Policy',

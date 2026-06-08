@@ -80,7 +80,7 @@ export function Header() {
     '/settings': { title: t.settings.settings, description: t.settings.organizationSettings },
   };
 
-  const currentModule = moduleTitles[location.pathname] || { title: 'HealthLogix OS', description: '' };
+  const currentModule = moduleTitles[location.pathname] || { title: 'Oxisan', description: '' };
 
   // Close menus on outside click
   useEffect(() => {

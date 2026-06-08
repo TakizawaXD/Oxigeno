@@ -343,7 +343,7 @@ Checklist de Compliance:
             onClick={() => navigate('/hero')}
             className="text-xl font-bold text-secondary-900 dark:text-white"
           >
-            HealthLogix OS
+            Oxisan OS
           </button>
           <button
             onClick={() => navigate('/signup')}
